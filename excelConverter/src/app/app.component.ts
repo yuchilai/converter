@@ -67,6 +67,7 @@ export class AppComponent implements OnInit {
   isEditingLayout = false;
   behavior?: IBehavior;
   date?: Date;
+  my?:boolean
 
   Toast = Swal.mixin({
     toast: true,
