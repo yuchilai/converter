@@ -479,7 +479,7 @@ export class AppComponent implements OnInit {
         let savedIndex = Number(localStorage.getItem(this.storageIndex));
         if(!isNaN(savedIndex) && savedIndex == i){
           if(savedIndex > 0){
-            this.selectedIndex = savedIndex--;
+            this.selectedIndex = --savedIndex;
             localStorage.setItem(this.storageIndex, String(this.selectedIndex));
           }
           else{
