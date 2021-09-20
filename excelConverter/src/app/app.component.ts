@@ -276,9 +276,9 @@ export class AppComponent implements OnInit {
               msgObj.msg =
                 'Sheet ' +
                 (i + 1) +
-                ' does not match any field names that are shown in the button of the list OR File: ' +
+                ' does not match any field names that are shown in the button of the list (File: ' +
                 this.fileName +
-                ' does not accept';
+                ')';
               msgObj.isDisplayed = true;
               this.errorMsg.push(msgObj);
               this.checkIfOutputListNotEmpty();
