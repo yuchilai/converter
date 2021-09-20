@@ -299,7 +299,7 @@ export class AppComponent implements OnInit {
                 title:
                   'File: ' +
                   this.fileName +
-                  'some of sheets do not convert successfully or something went wrong! Please see the deatil above!',
+                  'something went wrong! Please see the detail above!',
               });
             }
           }
