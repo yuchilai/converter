@@ -615,6 +615,7 @@ export class AppComponent implements OnInit {
             this.tempName = this.exportFileName;
             this.isExcelOnly = true;
             this.isSportMode = true;
+            this.errorMsg = [];
             Swal.fire({
               title: 'Done!',
               html: 'Everything has been reset. <br> Thank you for your patience!',
@@ -641,24 +642,33 @@ export class AppComponent implements OnInit {
   }
 
   saveEditing(): void {
-    this.isEdit = false;
-    if (this.editingIndex === -1) {
-      this.selectedIndex = this.allFiledNameList.length;
-      this.allFiledNameList.push(this.invoiceKeyList);
-    } else {
-      this.selectedIndex = this.editingIndex;
+    if(this.invoiceKeyList.length > 0){
+      this.isEdit = false;
+      if (this.editingIndex === -1) {
+        this.selectedIndex = this.allFiledNameList.length;
+        this.allFiledNameList.push(this.invoiceKeyList);
+      } else {
+        this.selectedIndex = this.editingIndex;
+      }
+      this.selectedKeyList = this.invoiceKeyList;
+      localStorage.setItem(
+        this.storageName,
+        JSON.stringify(this.allFiledNameList)
+      );
+      localStorage.setItem(this.storageIndex, String(this.selectedIndex));
+      this.Toast.fire({
+        icon: 'success',
+        title: 'Saved!',
+      });
+      this.sync();
     }
-    this.selectedKeyList = this.invoiceKeyList;
-    localStorage.setItem(
-      this.storageName,
-      JSON.stringify(this.allFiledNameList)
-    );
-    localStorage.setItem(this.storageIndex, String(this.selectedIndex));
-    this.Toast.fire({
-      icon: 'success',
-      title: 'Saved!',
-    });
-    this.sync();
+    else{
+      this.Toast.fire({
+        icon: 'error',
+        title: 'Cannot save due to empty layout',
+      });
+    }
+
   }
 
   restoreFieldName(): void {
