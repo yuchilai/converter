@@ -29,6 +29,9 @@ export class AppComponent implements OnInit {
   @ViewChild('editArea')
   editArea?: ElementRef;
 
+  @ViewChild('topOne')
+  topOne?: ElementRef;
+
   @ViewChildren('layoutList') layoutList?: QueryList<ElementRef>;
 
   name = 'Certify to Sage Intacct AP Converter';
@@ -49,15 +52,15 @@ export class AppComponent implements OnInit {
   isSportMode = true;
   inputToBeAdded?: string;
   tempName?: string;
-  isAutoDowload = true;
+  isAutoDownload = true;
   hasOutput = false;
   outputList: any[] = [];
   displayedList: any[] = [];
   isShowDownloadBtn = false;
   allFiledNameList: Array<string[]> = [];
-  storageName = 'gccny_ap_field_name';
-  storageIndex = 'gccny_ap_selected_index';
-  storageCB = 'gccny_ap_customer_behavior';
+  storageName = 'gccnyc_ap_field_name';
+  storageIndex = 'gccnyc_ap_selected_index';
+  storageCB = 'gccnyc_ap_customer_behavior';
   editingIndex?: number;
   isChanged?: boolean;
   isCreatingBtnAppeared = false;
@@ -115,6 +118,7 @@ export class AppComponent implements OnInit {
     //   this.createADefaultKeyObjGlobally();
     // }
     const tempList = localStorage.getItem(this.storageName);
+    //list in the localStorage
     if (
       tempList !== null &&
       JSON.parse(tempList)?.length > 0
@@ -125,8 +129,32 @@ export class AppComponent implements OnInit {
       filedNameListFromStorage.forEach((strList) => {
         this.allFiledNameList.push(strList);
       });
+      if (localStorage.getItem(this.storageIndex) !== null) {
+        const index = Number(localStorage.getItem(this.storageIndex));
+        if (
+          !isNaN(index) &&
+          index > -1 &&
+          index < this.allFiledNameList?.length
+        ) {
+          this.selectedIndex = index;
+          this.selectedKeyList = this.allFiledNameList[this.selectedIndex];
+          this.invoiceKeyList = this.selectedKeyList;
+        } else {
+          this.selectedIndex = 0;
+          this.selectedKeyList = this.allFiledNameList[this.selectedIndex];
+          this.invoiceKeyList = this.selectedKeyList;
+          localStorage.setItem(this.storageIndex, String(this.selectedIndex));
+        }
+      }
+      else{
+        this.selectedIndex = 0;
+        this.selectedKeyList = this.allFiledNameList[this.selectedIndex];
+        this.invoiceKeyList = this.selectedKeyList;
+        localStorage.setItem(this.storageIndex, String(this.selectedIndex));
+      }
     } else {
       this.createADefaultKeyObjGlobally();
+      //has list in the localStorage, but is empty [];
       if (tempList !== null && JSON.parse(tempList)?.length === 0) {
         localStorage.setItem(
           this.storageName,
@@ -135,38 +163,11 @@ export class AppComponent implements OnInit {
         this.selectedIndex = 0;
         localStorage.setItem(this.storageIndex, String(this.selectedIndex));
       } else {
+        //nothing in localStorage... this.storageName(layoutKey)
         this.selectedIndex = 0;
         this.selectedKeyList = this.invoiceKeyList;
-        // localStorage.setItem(this.storageIndex, String(this.selectedIndex));
       }
     }
-
-    console.warn(this.selectedIndex)
-    if (localStorage.getItem(this.storageIndex) !== null) {
-      const index = Number(localStorage.getItem(this.storageIndex));
-      console.warn('index = ' + index)
-      if (
-        !isNaN(index) &&
-        index > -1 &&
-        index < this.allFiledNameList?.length
-      ) {
-        this.selectedIndex = index;
-        this.selectedKeyList = this.allFiledNameList[this.selectedIndex];
-        this.invoiceKeyList = this.selectedKeyList;
-      } else {
-        this.selectedIndex = 0;
-        this.selectedKeyList = this.allFiledNameList[this.selectedIndex];
-        this.invoiceKeyList = this.selectedKeyList;
-        // localStorage.setItem(this.storageIndex, String(this.selectedIndex));
-      }
-    }
-    else{
-      this.selectedIndex = 0;
-      this.selectedKeyList = this.allFiledNameList[this.selectedIndex];
-      this.invoiceKeyList = this.selectedKeyList;
-      // localStorage.setItem(this.storageIndex, String(this.selectedIndex));
-    }
-    console.warn(this.selectedIndex)
 
     const tempCB = localStorage.getItem(this.storageCB);
     if (tempCB !== null) {
@@ -179,7 +180,7 @@ export class AppComponent implements OnInit {
         this.tempName = this.behavior.fileName;
       }
       if (this.behavior?.auto !== undefined) {
-        this.isAutoDowload = this.behavior.auto;
+        this.isAutoDownload = this.behavior.auto;
       }
       if (this.behavior?.fileAccepted !== undefined) {
         this.isExcelOnly = this.behavior.fileAccepted;
@@ -188,13 +189,10 @@ export class AppComponent implements OnInit {
         this.isSportMode = this.behavior.addingMode;
       }
     }
-    console.warn(this.allFiledNameList)
-    console.warn(this.invoiceKeyList)
   }
 
   onFileChange(ev: any) {
-    console.warn(this.invoiceKeyList)
-    if(this.selectedIndex !== undefined){
+    if(this.selectedIndex !== undefined && this.selectedIndex > -1 && this.selectedIndex < this.allFiledNameList.length){
       this.invoiceKeyList = this.allFiledNameList[this.selectedIndex];
       let workBook: any = null;
       let jsonData = null;
@@ -254,10 +252,10 @@ export class AppComponent implements OnInit {
               this.excelService.exportAsExcelFile(
                 this.invoices,
                 this.exportFileName,
-                !this.isAutoDowload
+                !this.isAutoDownload
               );
               this.outputList.push(this.invoices);
-              if (this.isAutoDowload) {
+              if (this.isAutoDownload) {
                 if (this.checkIfOutputListNotEmpty()) {
                   this.isShowDownloadBtn = true;
                 }
@@ -339,10 +337,10 @@ export class AppComponent implements OnInit {
             this.excelService.exportAsExcelFile(
               this.invoices,
               this.exportFileName,
-              !this.isAutoDowload
+              !this.isAutoDownload
             );
             this.outputList.push(this.invoices);
-            if (this.isAutoDowload) {
+            if (this.isAutoDownload) {
               if (this.checkIfOutputListNotEmpty()) {
                 this.isShowDownloadBtn = true;
               }
@@ -487,6 +485,12 @@ export class AppComponent implements OnInit {
             this.selectedIndex = undefined;
           }
         }
+        else if(i < savedIndex){
+          if(savedIndex > 0){
+            this.selectedIndex = --savedIndex;
+            localStorage.setItem(this.storageIndex, String(this.selectedIndex));
+          }
+        }
         this.Toast.fire({
           icon: 'success',
           title: 'Deleted!',
@@ -569,6 +573,71 @@ export class AppComponent implements OnInit {
     }
     this.isEdit = false;
     this.editingIndex = undefined;
+  }
+
+  resetToDefault(): void{
+    Swal.fire({
+      title: 'Are you  you want to reset everything to default?',
+      text: "Everything you save in your computer will be gone and you won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, reset it!'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        let timerInterval: any;
+        Swal.fire({
+          title: 'Countdown...',
+          html: '<b></b> <strong>to begin resetting</strong>. <br><br><br> <small style="color: red">You cna CLICK outside of box to cancel it</small>',
+          timer: 10000,
+          timerProgressBar: true,
+          didOpen: () => {
+            Swal.showLoading()
+            const b = Swal.getHtmlContainer()?.querySelector('b')
+            timerInterval = setInterval(() => {
+              b!.textContent = String(this.millisToMinutesAndSeconds(Swal.getTimerLeft()))
+            }, 100)
+          },
+          willClose: () => {
+            clearInterval(timerInterval)
+          }
+        }).then((result) => {
+          /* Read more about handling dismissals below */
+          if (result.dismiss === Swal.DismissReason.timer) {
+            localStorage.clear();
+            this.selectedIndex = 0;
+            const temp: string[] = this.createADefaultKeyObj();
+            this.allFiledNameList = [];
+            this.allFiledNameList.push(temp);
+            this.invoiceKeyList = temp;
+            this.isAutoDownload = true;
+            this.tempName = this.exportFileName;
+            this.isExcelOnly = true;
+            this.isSportMode = true;
+            Swal.fire({
+              title: 'Done!',
+              html: 'Everything has been reset. <br> Thank you for your patience!',
+              icon: 'success',
+              didClose: () => window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'smooth'
+              })
+            });
+          }
+        });
+      }
+    });
+    this.topOne?.nativeElement.scrollIntoView({
+      behavior: 'smooth',
+    });
+  }
+
+  millisToMinutesAndSeconds(millis: any): any {
+    var minutes = Math.floor(millis / 60000);
+    var seconds = ((millis % 60000) / 1000).toFixed(0);
+    return minutes + ":" + ((Number(seconds) < 10) ? '0' : '') + seconds;
   }
 
   saveEditing(): void {
@@ -700,14 +769,14 @@ export class AppComponent implements OnInit {
     }
   }
 
-  changeAutoDowload(): void {
-    this.isAutoDowload = !this.isAutoDowload;
+  changeAutoDownload(): void {
+    this.isAutoDownload = !this.isAutoDownload;
     let cb: IBehavior | undefined = this.behavior;
     if (cb !== undefined) {
-      cb.auto = this.isAutoDowload;
+      cb.auto = this.isAutoDownload;
     } else {
       cb = new Behavior();
-      cb.auto = this.isAutoDowload;
+      cb.auto = this.isAutoDownload;
     }
     this.behavior = cb;
     localStorage.setItem(this.storageCB, JSON.stringify(this.behavior));
@@ -766,7 +835,7 @@ export class AppComponent implements OnInit {
     this.invoiceKeyList = this.selectedKeyList;
   }
 
-  editDeaultLayout(): void {
+  editDefaultLayout(): void {
     this.isEditingLayout = true;
   }
 
@@ -778,6 +847,12 @@ export class AppComponent implements OnInit {
           behavior: 'smooth',
         });
       }
+    });
+  }
+
+  scrollToTop(): void{
+    this.topOne?.nativeElement.scrollIntoView({
+      behavior: 'smooth',
     });
   }
 

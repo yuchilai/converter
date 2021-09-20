@@ -3,7 +3,7 @@ export interface IBehavior {
   fileName?: string;
   auto?: boolean;
   fileAccepted?: boolean;
-  selectedInde?: number;
+  selectedIndex?: number;
   addingMode?: boolean;
   extra?: string;
 }

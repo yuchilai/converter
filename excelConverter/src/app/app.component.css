@@ -493,6 +493,38 @@ p {
   rgba(27, 31, 35, 0.15) 0px 0px 0px 1px;
 }
 
+.reset-everything-box{
+  margin-top: 200px;
+
+}
+.reset-title{
+
+}
+.reset-btn-box{
+  border: #cf222e solid 1px;
+  border-radius: 5px;
+  padding: 50px;
+}
+
+#reset-btn{
+  background: #f6f8fa;
+  color: #cf222e;
+  border: 1px solid hsl(210deg, 18%, 87%);
+  font-size: 20px;
+  font-weight: bolder;
+  padding: 15px 26px;
+  line-height: 20px;
+}
+
+#reset-btn:focus{
+  border: 1px solid hsl(210deg, 18%, 87%);
+}
+
+#reset-btn:hover{
+  background: #cf222e;
+  color: #f6f8fa;
+}
+
 .noselect {
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-user-select: none; /* Safari */
