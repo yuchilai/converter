@@ -133,14 +133,18 @@ export class AppComponent implements OnInit {
           JSON.stringify(this.allFiledNameList)
         );
         this.selectedIndex = 0;
+        localStorage.setItem(this.storageIndex, String(this.selectedIndex));
       } else {
         this.selectedIndex = 0;
         this.selectedKeyList = this.invoiceKeyList;
+        // localStorage.setItem(this.storageIndex, String(this.selectedIndex));
       }
     }
 
+    console.warn(this.selectedIndex)
     if (localStorage.getItem(this.storageIndex) !== null) {
       const index = Number(localStorage.getItem(this.storageIndex));
+      console.warn('index = ' + index)
       if (
         !isNaN(index) &&
         index > -1 &&
@@ -148,11 +152,21 @@ export class AppComponent implements OnInit {
       ) {
         this.selectedIndex = index;
         this.selectedKeyList = this.allFiledNameList[this.selectedIndex];
+        this.invoiceKeyList = this.selectedKeyList;
       } else {
         this.selectedIndex = 0;
-        this.selectedKeyList = this.invoiceKeyList;
+        this.selectedKeyList = this.allFiledNameList[this.selectedIndex];
+        this.invoiceKeyList = this.selectedKeyList;
+        // localStorage.setItem(this.storageIndex, String(this.selectedIndex));
       }
     }
+    else{
+      this.selectedIndex = 0;
+      this.selectedKeyList = this.allFiledNameList[this.selectedIndex];
+      this.invoiceKeyList = this.selectedKeyList;
+      // localStorage.setItem(this.storageIndex, String(this.selectedIndex));
+    }
+    console.warn(this.selectedIndex)
 
     const tempCB = localStorage.getItem(this.storageCB);
     if (tempCB !== null) {
@@ -174,37 +188,127 @@ export class AppComponent implements OnInit {
         this.isSportMode = this.behavior.addingMode;
       }
     }
+    console.warn(this.allFiledNameList)
+    console.warn(this.invoiceKeyList)
   }
 
   onFileChange(ev: any) {
-    let workBook: any = null;
-    let jsonData = null;
-    const reader = new FileReader();
-    const file = ev.target.files[0];
-    this.fileName = ev.target.files[0].name;
-    reader.onload = (event) => {
-      const data = reader.result;
-      workBook = XLSX.read(data, { type: 'binary' });
-      jsonData = workBook.SheetNames.reduce((initial: any, name: any) => {
-        const sheet = workBook.Sheets[name];
-        initial[name] = XLSX.utils.sheet_to_json(sheet);
-        return initial;
-      }, {});
-      const dataString = JSON.stringify(jsonData);
-      // document.getElementById('output').innerHTML = dataString
-      //   .slice(0, 300)
-      //   .concat('...');
-      // this.setDownload(dataString);
+    console.warn(this.invoiceKeyList)
+    if(this.selectedIndex !== undefined){
+      this.invoiceKeyList = this.allFiledNameList[this.selectedIndex];
+      let workBook: any = null;
+      let jsonData = null;
+      const reader = new FileReader();
+      const file = ev.target.files[0];
+      this.fileName = ev.target.files[0].name;
+      reader.onload = (event) => {
+        const data = reader.result;
+        workBook = XLSX.read(data, { type: 'binary' });
+        jsonData = workBook.SheetNames.reduce((initial: any, name: any) => {
+          const sheet = workBook.Sheets[name];
+          initial[name] = XLSX.utils.sheet_to_json(sheet);
+          return initial;
+        }, {});
+        const dataString = JSON.stringify(jsonData);
+        // document.getElementById('output').innerHTML = dataString
+        //   .slice(0, 300)
+        //   .concat('...');
+        // this.setDownload(dataString);
 
-      const jsonArr = JSON.parse(dataString);
-      this.outputList = [];
-      this.displayedList = [];
-      this.errorMsg = [];
-      if (workBook.SheetNames.length !== undefined) {
-        for (let i = 0; i < workBook.SheetNames.length; i++) {
+        const jsonArr = JSON.parse(dataString);
+        this.outputList = [];
+        this.displayedList = [];
+        this.errorMsg = [];
+        if (workBook.SheetNames.length !== undefined) {
+          for (let i = 0; i < workBook.SheetNames.length; i++) {
+            this.invoices = [];
+            jsonArr[workBook.SheetNames[i]].forEach((obj: any) => {
+              const invoiceObj = this.invoiceKeyList.reduce((carry:any, item: any) => {
+                carry[item] = undefined;
+                return carry;
+              }, {});
+
+              let isObjNotEmpty = false;
+              for (var key in obj) {
+                this.invoiceKeyList.forEach((k) => {
+                  // console.log("key: " + key + ", value: " + obj[key])
+                  // console.log("k: " + k + ", value: " + invoiceObj[k]);
+                  // console.log(key === k);
+                  if (key === k) {
+                    if (obj[key] !== undefined) {
+                      invoiceObj[k] = obj[key];
+                      isObjNotEmpty = true;
+                    }
+                  }
+                });
+                // console.log("key: " + key + ", value: " + obj[key])
+              }
+              // console.log(isObjNotEmpty)
+              // console.log(invoiceObj)
+              if (isObjNotEmpty) {
+                this.invoices.push(invoiceObj);
+              }
+            });
+            this.countLineNO();
+            if (this.invoices.length > 0) {
+              this.excelService.exportAsExcelFile(
+                this.invoices,
+                this.exportFileName,
+                !this.isAutoDowload
+              );
+              this.outputList.push(this.invoices);
+              if (this.isAutoDowload) {
+                if (this.checkIfOutputListNotEmpty()) {
+                  this.isShowDownloadBtn = true;
+                }
+              } else {
+                if (this.checkIfOutputListNotEmpty()) {
+                  this.hasOutput = true;
+                }
+              }
+              const itemObj: IDisplayed = new Displayed();
+              itemObj.name = workBook.SheetNames[i];
+              if (itemObj.displayList === undefined) {
+                itemObj.displayList = [];
+              }
+              itemObj.displayList.push(this.invoices);
+              this.displayedList.push(itemObj);
+            } else {
+              const msgObj = new ErrorMsg();
+              msgObj.msg =
+                'Sheet ' +
+                (i + 1) +
+                ' does not match any field names that are shown in the botton of the list OR File: ' +
+                this.fileName +
+                ' does not accept';
+              msgObj.isDisplayed = true;
+              this.errorMsg.push(msgObj);
+              this.checkIfOutputListNotEmpty();
+              const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 10000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                  toast.addEventListener('mouseenter', Swal.stopTimer);
+                  toast.addEventListener('mouseleave', Swal.resumeTimer);
+                },
+              });
+
+              Toast.fire({
+                icon: 'error',
+                title:
+                  'File: ' +
+                  this.fileName +
+                  'some of sheets do not convert successfully or something went wrong! Please see the deatil above!',
+              });
+            }
+          }
+        } else {
           this.invoices = [];
-          jsonArr[workBook.SheetNames[i]].forEach((obj: any) => {
-            const invoiceObj = this.invoiceKeyList.reduce((carry:any, item: any) => {
+          jsonArr[workBook.SheetNames[0]].forEach((obj: any) => {
+            const invoiceObj = this.invoiceKeyList.reduce((carry: any, item: any) => {
               carry[item] = undefined;
               return carry;
             }, {});
@@ -248,7 +352,7 @@ export class AppComponent implements OnInit {
               }
             }
             const itemObj: IDisplayed = new Displayed();
-            itemObj.name = workBook.SheetNames[i];
+            itemObj.name = workBook.SheetNames[0];
             if (itemObj.displayList === undefined) {
               itemObj.displayList = [];
             }
@@ -257,9 +361,7 @@ export class AppComponent implements OnInit {
           } else {
             const msgObj = new ErrorMsg();
             msgObj.msg =
-              'Sheet ' +
-              (i + 1) +
-              ' does not match any field names that are shown in the botton of the list OR File: ' +
+              'Sheet 1 does not match any field names that are shown in the botton of the list OR File: ' +
               this.fileName +
               ' does not accept';
             msgObj.isDisplayed = true;
@@ -286,92 +388,19 @@ export class AppComponent implements OnInit {
             });
           }
         }
-      } else {
-        this.invoices = [];
-        jsonArr[workBook.SheetNames[0]].forEach((obj: any) => {
-          const invoiceObj = this.invoiceKeyList.reduce((carry: any, item: any) => {
-            carry[item] = undefined;
-            return carry;
-          }, {});
+        this.resetFile();
+      };
+      reader.readAsBinaryString(file);
+    }
+    else{
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Please select your layout!',
+        footer: '<a href="/">Can not fix the problems? Click here to refresh</a>'
+      })
+    }
 
-          let isObjNotEmpty = false;
-          for (var key in obj) {
-            this.invoiceKeyList.forEach((k) => {
-              // console.log("key: " + key + ", value: " + obj[key])
-              // console.log("k: " + k + ", value: " + invoiceObj[k]);
-              // console.log(key === k);
-              if (key === k) {
-                if (obj[key] !== undefined) {
-                  invoiceObj[k] = obj[key];
-                  isObjNotEmpty = true;
-                }
-              }
-            });
-            // console.log("key: " + key + ", value: " + obj[key])
-          }
-          // console.log(isObjNotEmpty)
-          // console.log(invoiceObj)
-          if (isObjNotEmpty) {
-            this.invoices.push(invoiceObj);
-          }
-        });
-        this.countLineNO();
-        if (this.invoices.length > 0) {
-          this.excelService.exportAsExcelFile(
-            this.invoices,
-            this.exportFileName,
-            !this.isAutoDowload
-          );
-          this.outputList.push(this.invoices);
-          if (this.isAutoDowload) {
-            if (this.checkIfOutputListNotEmpty()) {
-              this.isShowDownloadBtn = true;
-            }
-          } else {
-            if (this.checkIfOutputListNotEmpty()) {
-              this.hasOutput = true;
-            }
-          }
-          const itemObj: IDisplayed = new Displayed();
-          itemObj.name = workBook.SheetNames[0];
-          if (itemObj.displayList === undefined) {
-            itemObj.displayList = [];
-          }
-          itemObj.displayList.push(this.invoices);
-          this.displayedList.push(itemObj);
-        } else {
-          const msgObj = new ErrorMsg();
-          msgObj.msg =
-            'Sheet 1 does not match any field names that are shown in the botton of the list OR File: ' +
-            this.fileName +
-            ' does not accept';
-          msgObj.isDisplayed = true;
-          this.errorMsg.push(msgObj);
-          this.checkIfOutputListNotEmpty();
-          const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 10000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-              toast.addEventListener('mouseenter', Swal.stopTimer);
-              toast.addEventListener('mouseleave', Swal.resumeTimer);
-            },
-          });
-
-          Toast.fire({
-            icon: 'error',
-            title:
-              'File: ' +
-              this.fileName +
-              'some of sheets do not convert successfully or something went wrong! Please see the deatil above!',
-          });
-        }
-      }
-      this.resetFile();
-    };
-    reader.readAsBinaryString(file);
   }
 
   checkIfOutputListNotEmpty(): boolean {
@@ -447,6 +476,17 @@ export class AppComponent implements OnInit {
           this.storageName,
           JSON.stringify(this.allFiledNameList)
         );
+        let savedIndex = Number(localStorage.getItem(this.storageIndex));
+        if(!isNaN(savedIndex) && savedIndex == i){
+          if(savedIndex > 0){
+            this.selectedIndex = savedIndex--;
+            localStorage.setItem(this.storageIndex, String(this.selectedIndex));
+          }
+          else{
+            localStorage.removeItem(this.storageIndex);
+            this.selectedIndex = undefined;
+          }
+        }
         this.Toast.fire({
           icon: 'success',
           title: 'Deleted!',
@@ -544,6 +584,7 @@ export class AppComponent implements OnInit {
       this.storageName,
       JSON.stringify(this.allFiledNameList)
     );
+    localStorage.setItem(this.storageIndex, String(this.selectedIndex));
     this.Toast.fire({
       icon: 'success',
       title: 'Saved!',
