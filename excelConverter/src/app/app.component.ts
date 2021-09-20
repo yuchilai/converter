@@ -296,10 +296,7 @@ export class AppComponent implements OnInit {
 
               Toast.fire({
                 icon: 'error',
-                title:
-                  'File: ' +
-                  this.fileName +
-                  'something went wrong! Please see the detail above!',
+                title: 'Something went wrong! Please see the detail above!',
               });
             }
           }
