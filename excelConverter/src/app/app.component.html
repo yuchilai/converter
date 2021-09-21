@@ -121,7 +121,7 @@
         {{
         isAutoDownload
           ? 'Automatically download Excel file'
-          : 'Click to dowload Excel file'
+          : 'Click to download Excel file'
         }}
       </div>
       <div class="form-check form-switch">
@@ -170,7 +170,12 @@
           *ngFor="let items of allFiledNameList; let i = index"
           class="layout-radio-btn"
         >
-          <div class="layout-group-radio">
+          <div
+            class="layout-group-radio"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="{{ listNames[i] }}"
+          >
             <input
               type="radio"
               class="btn-check"
@@ -294,7 +299,7 @@
     </div>
   </div> -->
 
-  <p>
+  <p #editLayoutList>
     You can edit order by click edit and simply drag and drop to adjust them.
   </p>
 
@@ -307,6 +312,7 @@
       >
         <div class="btn-box">
           <span class="list-number">{{ i + 1 }}.</span>
+          <span class="list-name-title">{{ listNames[i] }}</span>
           <button
             type="button"
             class="btn btn-danger"
@@ -368,6 +374,15 @@
           >
             Save
           </button>
+        </div>
+        <div class="list-name-box">
+          <div class="input-group input-group-lg">
+            <span class="input-group-text layout-title" id="inputGroup-sizing-lg">Layout Name: </span>
+            <input [(ngModel)]="listName"
+                   type="text"
+                   class="form-control"
+            >
+          </div>
         </div>
         <div cdkDropList class="edit-list" (cdkDropListDropped)="drop($event)">
           <div

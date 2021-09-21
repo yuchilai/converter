@@ -471,9 +471,15 @@ p {
 }
 
 .list-number {
-  margin: 0 5px;
+  margin: 0 0 0 10px;
+  padding: 5px 5px 5px 0;
+  font-size: 1.5rem;
+  font-weight: bolder;
+}
+
+.list-name-title{
+  flex-grow: 2;
   padding: 5px;
-  flex-grow: 3;
   font-size: 1.5rem;
   font-weight: bolder;
 }
@@ -523,6 +529,19 @@ p {
 #reset-btn:hover{
   background: #cf222e;
   color: #f6f8fa;
+}
+
+.list-name-box{
+  display: flex;
+  width: 400px;
+}
+
+#basic-addon2{
+  cursor: pointer;
+}
+
+.layout-title{
+  font-weight: bolder;
 }
 
 .noselect {

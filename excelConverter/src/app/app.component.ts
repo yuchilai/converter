@@ -32,6 +32,9 @@ export class AppComponent implements OnInit {
   @ViewChild('topOne')
   topOne?: ElementRef;
 
+  @ViewChild('editLayoutList')
+  editLayoutList?: ElementRef;
+
   @ViewChildren('layoutList') layoutList?: QueryList<ElementRef>;
 
   name = 'Certify to Sage Intacct AP Converter';
@@ -61,6 +64,7 @@ export class AppComponent implements OnInit {
   storageName = 'gccnyc_ap_field_name';
   storageIndex = 'gccnyc_ap_selected_index';
   storageCB = 'gccnyc_ap_customer_behavior';
+  storageListNames = 'gccnyc_ap_list_name';
   editingIndex?: number;
   isChanged?: boolean;
   isCreatingBtnAppeared = false;
@@ -70,7 +74,9 @@ export class AppComponent implements OnInit {
   isEditingLayout = false;
   behavior?: IBehavior;
   date?: Date;
-  my?:boolean
+  listNames: string[] = [];
+  listName?: string;
+  defaultName = 'Default Layout'
 
   Toast = Swal.mixin({
     toast: true,
@@ -95,28 +101,10 @@ export class AppComponent implements OnInit {
 
   ngOnInit() {
     this.date = new Date();
-    // const foo = ['123', '321', '123', '1234567', 'cassie'];
-    // this.allFiledNameList.push(foo);
-    // localStorage.setItem(
-    //   this.storageName,
-    //   JSON.stringify(this.allFiledNameList)
-    // );
-    // HERE HAS TO HAVE SELECTED INDEX FOR DEFUALT 'invoiceKeyList'
-    // const checkPoint = localStorage.getItem(this.storageName);
-    // console.log(checkPoint.length);
-    // console.log(checkPoint === null);
-    // console.log(checkPoint);
-    // if (checkPoint !== null && checkPoint.length > 0) {
-    //   const filedNameListFromStorage: Array<string[]> = JSON.parse(checkPoint);
-    //   console.log(filedNameListFromStorage.length);
-    //   if (filedNameListFromStorage instanceof Array) {
-    //     filedNameListFromStorage.forEach((strList) => {
-    //       this.allFiledNameList.push(strList);
-    //     });
-    //   }
-    // } else {
-    //   this.createADefaultKeyObjGlobally();
-    // }
+    const foo = localStorage.getItem(this.storageListNames);
+    if(foo !== null){
+      this.listNames = JSON.parse(foo);
+    }
     const tempList = localStorage.getItem(this.storageName);
     //list in the localStorage
     if (
@@ -447,6 +435,10 @@ export class AppComponent implements OnInit {
     this.isAdding = false;
     this.editingIndex = i;
     this.isChanged = false;
+    this.listName = this.listNames[this.editingIndex];
+    this.editLayoutList?.nativeElement.scrollIntoView({
+      behavior: 'smooth',
+    });
   }
 
   deletObjFromList(i: number, item: string[]): void {
@@ -467,10 +459,12 @@ export class AppComponent implements OnInit {
     }).then((result) => {
       if (result.isConfirmed) {
         this.allFiledNameList.splice(i, 1);
+        this.listNames.splice(i, 1);
         localStorage.setItem(
           this.storageName,
           JSON.stringify(this.allFiledNameList)
         );
+        localStorage.setItem(this.storageListNames, JSON.stringify(this.listNames));
         let savedIndex = Number(localStorage.getItem(this.storageIndex));
         if(!isNaN(savedIndex) && savedIndex == i){
           if(savedIndex > 0){
@@ -627,9 +621,6 @@ export class AppComponent implements OnInit {
         });
       }
     });
-    this.topOne?.nativeElement.scrollIntoView({
-      behavior: 'smooth',
-    });
   }
 
   millisToMinutesAndSeconds(millis: any): any {
@@ -653,6 +644,14 @@ export class AppComponent implements OnInit {
         JSON.stringify(this.allFiledNameList)
       );
       localStorage.setItem(this.storageIndex, String(this.selectedIndex));
+      if(this.listName !== undefined && this.selectedIndex !== undefined){
+        this.listName = this.listName.trim();
+        if(this.listName !== ''){
+          this.listNames[this.selectedIndex] = this.listName.trim();
+          localStorage.setItem(this.storageListNames, JSON.stringify(this.listNames));
+          this.listName = undefined;
+        }
+      }
       this.Toast.fire({
         icon: 'success',
         title: 'Saved!',
