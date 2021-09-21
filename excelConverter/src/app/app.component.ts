@@ -607,6 +607,7 @@ export class AppComponent implements OnInit {
             this.isExcelOnly = true;
             this.isSportMode = true;
             this.errorMsg = [];
+            this.listNames = [];
             Swal.fire({
               title: 'Done!',
               html: 'Everything has been reset. <br> Thank you for your patience!',
