@@ -1,11 +1,15 @@
 import { Injectable } from '@angular/core';
 import * as FileSaver from 'file-saver';
 import * as XLSX from 'xlsx';
+import {OUTPUT_FORMATS} from "../entities/xlsxBookType";
+import {BookType} from "xlsx";
 // import * as _ from 'lodash';
 
 const EXCEL_TYPE =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
-const EXCEL_EXTENSION = '.xlsx';
+let EXCEL_EXTENSION = '.csv';
+// const EXCEL_EXTENSION = '.xlsx';
+// const CSV_EXTENSION = '.csv';
 
 @Injectable({
   providedIn: 'root'
@@ -17,25 +21,27 @@ export class ExcelService {
   public exportAsExcelFile(
     json: any[],
     excelFileName: string,
-    isNotDowload: boolean
+    isNotDownload: boolean,
+    indexType: number,
   ): void {
+    EXCEL_EXTENSION = OUTPUT_FORMATS[indexType].ext;
     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(json);
-    console.log('worksheet', worksheet);
     const workbook: XLSX.WorkBook = {
       Sheets: { data: worksheet },
       SheetNames: ['data'],
     };
     const excelBuffer: any = XLSX.write(workbook, {
-      bookType: 'xlsx',
+      // bookType: 'xlsx',
+      bookType: OUTPUT_FORMATS[indexType].bookType as BookType,
       type: 'array',
     });
     //const excelBuffer: any = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-    if (!isNotDowload) {
-      this.saveAsExcelFile(excelBuffer, excelFileName);
+    if (!isNotDownload) {
+      ExcelService.saveAsExcelFile(excelBuffer, excelFileName);
     }
   }
 
-  private saveAsExcelFile(buffer: any, fileName: string): void {
+  private static saveAsExcelFile(buffer: any, fileName: string): void {
     const data: Blob = new Blob([buffer], {
       type: EXCEL_TYPE,
     });

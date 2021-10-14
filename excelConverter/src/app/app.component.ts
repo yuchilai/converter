@@ -1,21 +1,19 @@
-import {
-  Component,
-  ElementRef,
-  VERSION,
-  ViewChild,
-  HostListener,
-  OnInit,
-  ViewChildren,
-  QueryList,
-} from '@angular/core';
-import { ExcelService } from './service/excel.service';
+import {Component, ElementRef, HostListener, OnInit, QueryList, ViewChild, ViewChildren, Inject, } from '@angular/core';
+import {ExcelService} from './service/excel.service';
 import * as XLSX from 'xlsx';
-import { IInvoice, Invoice } from './invoice.model';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { ErrorMsg, IErrorMsg } from './errorMsg.model';
-import { Displayed, IDisplayed } from './displayed.model';
+import {WorkSheet} from 'xlsx';
+import {Invoice} from './invoice.model';
+import {CdkDragDrop, moveItemInArray} from '@angular/cdk/drag-drop';
+import {ErrorMsg, IErrorMsg} from './errorMsg.model';
+import {Displayed, IDisplayed} from './displayed.model';
 import Swal from 'sweetalert2';
-import { Behavior, IBehavior } from './behavior.model';
+import {Behavior, IBehavior} from './behavior.model';
+import {IReplacement, Replacement} from "./entities/replacement.model";
+import {ColumnName, IColumnName} from "./entities/columnName.model";
+import {IReplaceName, ReplaceName} from "./entities/replaceName.model";
+import * as uuid from 'uuid';
+import {IRowName, RowName} from "./entities/rowName.model";
+import {OUTPUT_FORMATS} from "./entities/xlsxBookType";
 
 @Component({
   selector: 'my-app',
@@ -34,6 +32,9 @@ export class AppComponent implements OnInit {
 
   @ViewChild('editLayoutList')
   editLayoutList?: ElementRef;
+
+  @ViewChild('advanceThreeChoices')
+  advanceThreeChoices?: ElementRef;
 
   @ViewChildren('layoutList') layoutList?: QueryList<ElementRef>;
 
@@ -65,6 +66,7 @@ export class AppComponent implements OnInit {
   storageIndex = 'gccnyc_ap_selected_index';
   storageCB = 'gccnyc_ap_customer_behavior';
   storageListNames = 'gccnyc_ap_list_name';
+  storageReplaceName = 'gccnyc_ap_replacement';
   editingIndex?: number;
   isChanged?: boolean;
   isCreatingBtnAppeared = false;
@@ -76,11 +78,41 @@ export class AppComponent implements OnInit {
   date?: Date;
   listNames: string[] = [];
   listName?: string;
-  defaultName = 'Default Layout'
+  defaultName = 'Default Layout';
+  replacements?: IReplacement[];
+  displayReplacement?: IReplacement;
+  isAdvance = false;
+  isUsingAdvance = false;
+  isColumnHeaderChanged = false;
+  sameHeader = '(!@#SAME#@!)';
+  isImportEmpty = false;
+  nullMsg = '(!@#NULL#@!)';
+  flexDirectionColumnStyle = 'flex-direction: column;';
+  cursorAutoStyle = 'cursor: auto;';
+  cellBorderHoverColor = 'color: #86868b;';
+  editingCellStyle = 'cursor: auto; border-color: #86868b;';
+  radioLeftNullBtnStyle = 'width: 62px; border-radius: 0rem; border-right: 0px;';
+  radioMidNullBtnStyle = 'display: flex; justify-content: center; align-items: center; border-radius: 0rem; border-color: #ffc107; border-right: 0px; border-left: 0px;';
+  radioRightNullBtnStyle = 'width: 62px; border-radius: 0rem; border-left: 0px;';
+  convertTypeList?: any;
+  outputTypeIndex = 9;
+  orderList: string[] = [];
 
   Toast = Swal.mixin({
     toast: true,
     position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer);
+      toast.addEventListener('mouseleave', Swal.resumeTimer);
+    },
+  });
+
+  ToastTop = Swal.mixin({
+    toast: true,
+    position: 'top',
     showConfirmButton: false,
     timer: 3000,
     timerProgressBar: true,
@@ -100,6 +132,47 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.convertTypeList = OUTPUT_FORMATS
+    console.warn(OUTPUT_FORMATS);
+    this.replacements = [];
+    const tempReplacements = localStorage.getItem(this.storageReplaceName);
+    if(tempReplacements !== null){
+      this.replacements = JSON.parse(tempReplacements);
+      if(this.replacements !== undefined && this.replacements.length > 0){
+        this.resetIsEditing(this.replacements);
+      }
+
+    }
+    // for (let i = 0; i < 10; i++) {
+    //   const r: IReplacement = new Replacement();
+    //   r.id = uuid.v4();
+    //   r.name = 'Account ' + i;
+    //   const c: IColumnName = new ColumnName();
+    //   c.id = uuid.v4();
+    //   c.from = 'MyColumn ' + i;
+    //   c.to = 'MyMonColumn ' + i;
+    //   const c1: IColumnName = new ColumnName();
+    //   c1.id = uuid.v4();
+    //   c1.from = 'MyColumn ' + uuid.v1();
+    //   c1.to = 'MyMonColumn ' + uuid.v1();
+    //   const rName: IReplaceName = new ReplaceName();
+    //   rName.id = uuid.v4();
+    //   rName.from = 'replace ' + i;
+    //   rName.to = 'replaceTo ' + i;
+    //   if(r.columnKey === undefined){
+    //     r.columnKey = [];
+    //   }
+    //   if(r.replaceKey === undefined){
+    //     r.replaceKey = [];
+    //   }
+    //   r.columnKey?.push(c);
+    //   r.columnKey?.push(c1);
+    //   r.replaceKey?.push(rName);
+    //   this.replacements.push(r);
+    // }
+
+
+
     this.date = new Date();
     const foo = localStorage.getItem(this.storageListNames);
     if(foo !== null){
@@ -114,9 +187,11 @@ export class AppComponent implements OnInit {
       const filedNameListFromStorage: Array<string[]> = JSON.parse(
         tempList
       );
+      console.warn(filedNameListFromStorage)
       filedNameListFromStorage.forEach((strList) => {
         this.allFiledNameList.push(strList);
       });
+      console.warn(this.allFiledNameList)
       if (localStorage.getItem(this.storageIndex) !== null) {
         const index = Number(localStorage.getItem(this.storageIndex));
         if (
@@ -192,14 +267,10 @@ export class AppComponent implements OnInit {
         workBook = XLSX.read(data, { type: 'binary' });
         jsonData = workBook.SheetNames.reduce((initial: any, name: any) => {
           const sheet = workBook.Sheets[name];
-          initial[name] = XLSX.utils.sheet_to_json(sheet);
+          initial[name] = XLSX.utils.sheet_to_json(sheet, {defval:"", raw:false});
           return initial;
         }, {});
         const dataString = JSON.stringify(jsonData);
-        // document.getElementById('output').innerHTML = dataString
-        //   .slice(0, 300)
-        //   .concat('...');
-        // this.setDownload(dataString);
 
         const jsonArr = JSON.parse(dataString);
         this.outputList = [];
@@ -208,43 +279,111 @@ export class AppComponent implements OnInit {
         if (workBook.SheetNames.length !== undefined) {
           for (let i = 0; i < workBook.SheetNames.length; i++) {
             this.invoices = [];
-            jsonArr[workBook.SheetNames[i]].forEach((obj: any) => {
-              const invoiceObj = this.invoiceKeyList.reduce((carry:any, item: any) => {
-                carry[item] = undefined;
-                return carry;
-              }, {});
+            if(this.isColumnHeaderChanged){
+              var Heading = [
+                this.invoiceKeyList,
+              ];
+              if(this.checkIfHasSame(this.invoiceKeyList)){
+                const work_sheet_headers = this.getHeadersFromWorkSheet(workBook.Sheets[workBook.SheetNames[i]]);
+                if(work_sheet_headers.length > 0){
+                  Heading = [
+                    this.mergeTwoHeaders(Object.assign([], this.invoiceKeyList), work_sheet_headers)
+                  ];
+                }
+              }
 
-              let isObjNotEmpty = false;
-              for (var key in obj) {
-                this.invoiceKeyList.forEach((k) => {
-                  // console.log("key: " + key + ", value: " + obj[key])
-                  // console.log("k: " + k + ", value: " + invoiceObj[k]);
-                  // console.log(key === k);
-                  if (key === k) {
-                    if (obj[key] !== undefined) {
-                      invoiceObj[k] = obj[key];
-                      isObjNotEmpty = true;
+
+              // //Had to create a new workbook and then add the header
+              // const ws = XLSX.utils.book_new();
+              // const jj = XLSX.utils.sheet_add_aoa(XLSX.utils.json_to_sheet(jsonArr[workBook.SheetNames[i]]), Heading, {cellDates: true});
+              const ws = XLSX.utils.sheet_add_aoa(workBook.Sheets[workBook.SheetNames[i]], Heading, {cellDates: true, sheetStubs: true});
+              // const jsonObj = XLSX.utils.sheet_to_json(wsHeaders, {defval:""});
+              // const jsonObj = XLSX.utils.sheet_to_json(wsHeaders, {defval:""});
+              this.invoices = XLSX.utils.sheet_to_json(ws, {defval: "", raw: false});
+              console.warn(this.invoices.length)
+              this.isImportEmpty = this.invoices.length === 0;
+              // this.invoices.push(JSON.parse(JSON.stringify(jsonObj)));
+              //
+              // //Starting in the second row to avoid overriding and skipping headers
+              // const workSheet = XLSX.utils.sheet_add_json(ws, jsonArr[workBook.SheetNames[i]], { origin: 'A2', skipHeader: true });
+              // const j = XLSX.utils.sheet_to_json(workSheet);
+              // // console.warn(j)
+              // this.excelService.exportAsExcelFile(
+              //   jsonObj,
+              //   this.exportFileName,
+              //   !this.isAutoDownload
+              // );
+
+              // jsonArr[workBook.SheetNames[i]].forEach((obj: any) => {
+              //   const invoiceObj = this.invoiceKeyList.reduce((carry:any, item: any) => {
+              //     carry[item] = undefined;
+              //     return carry;
+              //   }, {});
+              //   // console.warn(invoiceObj)
+              //   let isObjNotEmpty = false;
+              //   const tempListValue = [];
+              //   console.warn(Object.keys(obj))
+              //   for (var k in obj) {
+              //     // console.warn(k)
+              //     tempListValue.push(obj[k]);
+              //   }
+              //   console.warn(tempListValue)
+              //   let index = 0;
+              //   for(var key in invoiceObj){
+              //     if(invoiceObj.hasOwnProperty(key)){
+              //       invoiceObj[key] = tempListValue[index++];
+              //     }
+              //   }
+              //   this.invoices.push(invoiceObj);
+              // });
+            }
+            else{
+              jsonArr[workBook.SheetNames[i]].forEach((obj: any) => {
+                let invoiceObj = this.invoiceKeyList.reduce((carry:any, item: any) => {
+                  carry[item] = undefined;
+                  return carry;
+                }, {});
+                // console.warn(invoiceObj)
+                let isObjNotEmpty = false;
+                for (var key in obj) {
+                  this.invoiceKeyList.forEach((k) => {
+                    // console.log("key: " + key + ", value: " + obj[key])
+                    // console.log("k: " + k + ", value: " + invoiceObj[k]);
+                    // console.log(key === k);
+                    if (key === k) {
+                      if (obj.hasOwnProperty(key) && obj[key] !== undefined) {
+                        invoiceObj[k] = obj[key];
+                        isObjNotEmpty = true;
+                      }
                     }
-                  }
-                });
-                // console.log("key: " + key + ", value: " + obj[key])
-              }
-              // console.log(isObjNotEmpty)
-              // console.log(invoiceObj)
-              if (isObjNotEmpty) {
-                this.invoices.push(invoiceObj);
-              }
-            });
-            this.countLineNO();
+                  });
+                  // console.log("key: " + key + ", value: " + obj[key])
+                }
+                // console.log(isObjNotEmpty)
+                for (const option of this.orderList) {
+                  invoiceObj = this.replaceHeaders(invoiceObj, option);
+                }
+                console.warn(invoiceObj)
+                if (isObjNotEmpty) {
+                  this.invoices.push(invoiceObj);
+                }
+              });
+              this.countLineNO();
+            }
             if (this.invoices.length > 0) {
+              if(this.behavior?.outputFormatsIndex !== undefined){
+                this.outputTypeIndex = this.behavior.outputFormatsIndex;
+              }
               this.excelService.exportAsExcelFile(
                 this.invoices,
                 this.exportFileName,
-                !this.isAutoDownload
+                !this.isAutoDownload,
+                this.outputTypeIndex
               );
               this.outputList.push(this.invoices);
               if (this.isAutoDownload) {
                 if (this.checkIfOutputListNotEmpty()) {
+                  this.hasOutput = false;
                   this.isShowDownloadBtn = true;
                 }
               } else {
@@ -261,115 +400,32 @@ export class AppComponent implements OnInit {
               this.displayedList.push(itemObj);
             } else {
               const msgObj = new ErrorMsg();
-              msgObj.msg =
-                'Sheet ' +
-                (i + 1) +
-                ' does not match any field names that are shown in the button of the list (File: ' +
-                this.fileName +
-                ')';
+              if(this.isImportEmpty){
+                msgObj.msg = 'Cannot accept excel (work sheet) is empty OR only row 1 has the data! TIP: If you want to add headers with empty work sheet, you can add any thing below row 1. Thus, this will add any headers you types.'
+              }
+              else{
+                msgObj.msg =
+                  'Sheet name: ' +
+                  workBook.SheetNames[i] +
+                  ' does not match any field names that are shown in the button of the list (File: ' +
+                  this.fileName +
+                  ')';
+              }
               msgObj.isDisplayed = true;
               this.errorMsg.push(msgObj);
               this.checkIfOutputListNotEmpty();
-              const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 10000,
-                timerProgressBar: true,
-                didOpen: (toast) => {
-                  toast.addEventListener('mouseenter', Swal.stopTimer);
-                  toast.addEventListener('mouseleave', Swal.resumeTimer);
-                },
-              });
 
-              Toast.fire({
+              this.ToastTop.fire({
                 icon: 'error',
                 title: 'Something went wrong! Please see the detail above!',
               });
             }
           }
         } else {
-          this.invoices = [];
-          jsonArr[workBook.SheetNames[0]].forEach((obj: any) => {
-            const invoiceObj = this.invoiceKeyList.reduce((carry: any, item: any) => {
-              carry[item] = undefined;
-              return carry;
-            }, {});
-
-            let isObjNotEmpty = false;
-            for (var key in obj) {
-              this.invoiceKeyList.forEach((k) => {
-                // console.log("key: " + key + ", value: " + obj[key])
-                // console.log("k: " + k + ", value: " + invoiceObj[k]);
-                // console.log(key === k);
-                if (key === k) {
-                  if (obj[key] !== undefined) {
-                    invoiceObj[k] = obj[key];
-                    isObjNotEmpty = true;
-                  }
-                }
-              });
-              // console.log("key: " + key + ", value: " + obj[key])
-            }
-            // console.log(isObjNotEmpty)
-            // console.log(invoiceObj)
-            if (isObjNotEmpty) {
-              this.invoices.push(invoiceObj);
-            }
+          this.ToastTop.fire({
+            icon: 'error',
+            title: 'Something went wrong! Please, refresh it again!',
           });
-          this.countLineNO();
-          if (this.invoices.length > 0) {
-            this.excelService.exportAsExcelFile(
-              this.invoices,
-              this.exportFileName,
-              !this.isAutoDownload
-            );
-            this.outputList.push(this.invoices);
-            if (this.isAutoDownload) {
-              if (this.checkIfOutputListNotEmpty()) {
-                this.isShowDownloadBtn = true;
-              }
-            } else {
-              if (this.checkIfOutputListNotEmpty()) {
-                this.hasOutput = true;
-              }
-            }
-            const itemObj: IDisplayed = new Displayed();
-            itemObj.name = workBook.SheetNames[0];
-            if (itemObj.displayList === undefined) {
-              itemObj.displayList = [];
-            }
-            itemObj.displayList.push(this.invoices);
-            this.displayedList.push(itemObj);
-          } else {
-            const msgObj = new ErrorMsg();
-            msgObj.msg =
-              'Sheet 1 does not match any field names that are shown in the botton of the list OR File: ' +
-              this.fileName +
-              ' does not accept';
-            msgObj.isDisplayed = true;
-            this.errorMsg.push(msgObj);
-            this.checkIfOutputListNotEmpty();
-            const Toast = Swal.mixin({
-              toast: true,
-              position: 'top-end',
-              showConfirmButton: false,
-              timer: 10000,
-              timerProgressBar: true,
-              didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
-              },
-            });
-
-            Toast.fire({
-              icon: 'error',
-              title:
-                'File: ' +
-                this.fileName +
-                'some of sheets do not convert successfully or something went wrong! Please see the deatil above!',
-            });
-          }
         }
         this.resetFile();
       };
@@ -383,15 +439,18 @@ export class AppComponent implements OnInit {
         footer: '<a href="/">Can not fix the problems? Click here to refresh</a>'
       })
     }
-
   }
 
+  // renameKeys(obj, newKeys) {
+  //   const keyValues = Object.keys(obj).map(key => {
+  //     const newKey = newKeys[key] || key;
+  //     return { [newKey]: obj[key] };
+  //   });
+  //   return Object.assign({}, ...keyValues);
+  // }
+
   checkIfOutputListNotEmpty(): boolean {
-    if (this.outputList.length > 0) {
-      return true;
-    } else {
-      return false;
-    }
+    return this.outputList.length > 0;
   }
 
   countLineNO(): void {
@@ -429,6 +488,14 @@ export class AppComponent implements OnInit {
     this.isChanged = true;
   }
 
+  dropOrder(event: CdkDragDrop<string[]>) {
+    moveItemInArray(
+      this.orderList,
+      event.previousIndex,
+      event.currentIndex
+    );
+  }
+
   editOrder(i: number, item: string[]): void {
     this.invoiceKeyList = item;
     this.isEdit = true;
@@ -441,7 +508,7 @@ export class AppComponent implements OnInit {
     });
   }
 
-  deletObjFromList(i: number, item: string[]): void {
+  deleteObjFromList(i: number, item: string[]): void {
     Swal.fire({
       title: 'Are you sure?',
       text: "You won't be able to revert this!",
@@ -514,7 +581,7 @@ export class AppComponent implements OnInit {
           this.isChanged = false;
           this.cancelEditing();
           // Swal.fire('Changes are not saved', '', 'info');
-          this.Toast.fire({
+          this.ToastTop.fire({
             icon: 'info',
             title: 'Changes are not saved',
           });
@@ -646,12 +713,15 @@ export class AppComponent implements OnInit {
       );
       localStorage.setItem(this.storageIndex, String(this.selectedIndex));
       if(this.listName !== undefined && this.selectedIndex !== undefined){
-        this.listName = this.listName.trim();
-        if(this.listName !== ''){
-          this.listNames[this.selectedIndex] = this.listName.trim();
-          localStorage.setItem(this.storageListNames, JSON.stringify(this.listNames));
-          this.listName = undefined;
-        }
+        // this.listName = this.listName.trim();
+        // if(this.listName !== ''){
+        //   this.listNames[this.selectedIndex] = this.listName.trim();
+        //   localStorage.setItem(this.storageListNames, JSON.stringify(this.listNames));
+        //   this.listName = undefined;
+        // }
+        this.listNames[this.selectedIndex] = this.listName.trim();
+        localStorage.setItem(this.storageListNames, JSON.stringify(this.listNames));
+        this.listName = undefined;
       }
       this.Toast.fire({
         icon: 'success',
@@ -660,7 +730,7 @@ export class AppComponent implements OnInit {
       this.sync();
     }
     else{
-      this.Toast.fire({
+      this.ToastTop.fire({
         icon: 'error',
         title: 'Cannot save due to empty layout',
       });
@@ -789,12 +859,26 @@ export class AppComponent implements OnInit {
     localStorage.setItem(this.storageCB, JSON.stringify(this.behavior));
   }
 
-  dowloadTheFile(index: number): void {
+  switchHeaders(): void{
+    this.isColumnHeaderChanged = !this.isColumnHeaderChanged;
+    let cb: IBehavior | undefined = this.behavior;
+    if (cb !== undefined) {
+      cb.headerConvertor = this.isColumnHeaderChanged;
+    } else {
+      cb = new Behavior();
+      cb.headerConvertor = this.isColumnHeaderChanged;
+    }
+    this.behavior = cb;
+    localStorage.setItem(this.storageCB, JSON.stringify(this.behavior));
+  }
+
+  downloadTheFile(index: number): void {
     // this.excelService.exportAsExcelFile(item, this.exportFileName, false);
     this.excelService.exportAsExcelFile(
       this.outputList[index],
       this.exportFileName,
-      false
+      false,
+      this.outputTypeIndex
     );
   }
 
@@ -863,7 +947,1077 @@ export class AppComponent implements OnInit {
     });
   }
 
-  addShakingAnimation(targetId: string): void {
+  scroll(el: HTMLElement) {
+    el.scrollIntoView();
+  }
+  // scroll() {}
+
+  editReplacements(event: any, item: IReplacement): void{
+    // event.stopPropagation()
+    // if(item.editName === undefined || item.editName === ''){
+    //   item.editName = item.name;
+    // }
+    item.editName = item.name;
+    item.isEditing = !item.isEditing;
+    item.isJustCreated = false;
+  }
+
+  saveReplacementName(event: any, item: IReplacement, index: number): void{
+    // event.stopPropagation();
+    if(item.editName !== undefined){
+      item.editName = item.editName.trim();
+      if(item.editName.length > 0){
+        item.name = item.editName;
+        item.editName = undefined;
+        item.isEditing = false;
+        item.isJustCreated = false;
+        this.saveReplacementInLocalStorage();
+        this.Toast.fire({
+          icon: 'success',
+          title: 'Saved!'
+        });
+      }
+      else{
+        this.ToastTop.fire({
+          icon: 'error',
+          title: 'Name cannot be null!!!'
+        });
+        this.addShakingAnimation('edit-name-input' + index);
+      }
+    }
+    else{
+      this.ToastTop.fire({
+        icon: 'error',
+        title: 'Name cannot be null!!!'
+      });
+      this.addShakingAnimation('edit-name-input' + index);
+    }
+  }
+
+  cancelReplacement(event: any, item: IReplacement, index: number): void{
+    if(item.isJustCreated){
+      if(item.editName !== undefined && item.editName.trim() !== ''){
+        Swal.fire({
+          title: 'Do you want to create the ' + item.editName + ' ?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Create',
+          denyButtonText: `Don't create`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveReplacementName(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Nothing has been changed!!!'
+            });
+            this.replacements?.splice(index, 1);
+            item.isEditing = false;
+          }
+        });
+      }
+      else{
+        this.replacements?.splice(index, 1);
+      }
+      // this.deleteReplacement(event, item, index);
+    }
+    else{
+      if(item.editName !== undefined && item.editName !== item.name){
+        Swal.fire({
+          title: 'Do you want to save the changes?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Save',
+          denyButtonText: `Don't save`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveReplacementName(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Changes are not saved'
+            });
+            item.isEditing = false;
+          }
+        });
+      }
+      else{
+        item.isEditing = false;
+      }
+    }
+  }
+
+  saveReplacementInLocalStorage(doNotSaveTheBlanks?: boolean): void{
+    if(this.replacements !== undefined){
+      localStorage.setItem(this.storageReplaceName, JSON.stringify(this.rearrangeJustCreated(this.replacements, doNotSaveTheBlanks)));
+    }
+  }
+
+  createReplacement(): void{
+    const r: IReplacement = new Replacement();
+    r.id = this.getUUID();
+    r.isEditing = true;
+    r.isJustCreated = true;
+    if(this.replacements === undefined) {
+      this.replacements = [];
+    }
+    this.replacements.push(r);
+  }
+
+  deleteReplacement(event: any, item: IReplacement, index: number, popup?: boolean): void{
+    if(item.isJustCreated){
+      item.editName = undefined;
+      this.cancelReplacement(event, item, index);
+    }
+    else{
+        Swal.fire({
+          title: 'Are you sure you want to delete it',
+          text: "You won't be able to revert this!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+          if (result.isConfirmed) {
+              if(this.displayReplacement !== undefined){
+                if(this.displayReplacement.id === item.id){
+                  this.displayReplacement = undefined;
+                }
+              }
+              this.replacements?.splice(index, 1);
+              console.warn(this.replacements)
+              this.saveReplacementInLocalStorage(true);
+            this.Toast.fire({
+              icon: 'success',
+              title: 'Deleted!'
+            });
+          }
+        });
+    }
+    // if(popup && !item.isJustCreated){
+    //   Swal.fire({
+    //     title: 'Are you sure you want to delete it',
+    //     text: "You won't be able to revert this!",
+    //     icon: 'warning',
+    //     showCancelButton: true,
+    //     confirmButtonColor: '#d33',
+    //     cancelButtonColor: '#3085d6',
+    //     confirmButtonText: 'Yes, delete it!'
+    //   }).then((result) => {
+    //     if (result.isConfirmed) {
+    //       this.deleteReplacement(event, item, index, false);
+    //       this.Toast.fire({
+    //         icon: 'success',
+    //         title: 'Deleted!'
+    //       });
+    //     }
+    //   })
+    // }
+    // else {
+    //   console.warn(this.replacements)
+    //   if(this.displayReplacement !== undefined){
+    //     if(this.displayReplacement.id === item.id){
+    //       this.displayReplacement = undefined;
+    //     }
+    //   }
+    //   this.replacements?.splice(index, 1);
+    //   console.warn(this.replacements)
+    //   this.saveReplacementInLocalStorage(true);
+    // }
+  }
+
+  selectReplacement(event: any, item: IReplacement, i: number): void{
+    // event.preventDefault();
+    if(this.replacements !== undefined){
+      this.resetReplacementChecked(this.replacements, true, false, false, false);
+      item.checked = true;
+    }
+    this.displayReplacement = item;
+    this.addingOrderList();
+    this.advanceThreeChoices?.nativeElement.scrollIntoView({
+      behavior: 'smooth',
+    });
+  }
+
+  checkIfHasSame(targets: string[]): boolean{
+    let result = false;
+    for (const value of targets) {
+      if(value === this.sameHeader){
+        result = true;
+      }
+    }
+    return result;
+  }
+
+  mergeTwoHeaders(headers: string[], excelHeaders: string[]): string[]{
+    for (let i = 0; i < headers.length; i++) {
+      if(headers[i] === this.sameHeader && i < excelHeaders.length){
+        headers[i] = excelHeaders[i];
+      }
+    }
+    return headers;
+  }
+
+  countSameHeaders(targets: string[]): number{
+    let count = 0;
+    targets.forEach((item: string) => {
+      if(item === this.sameHeader){
+        count++;
+      }
+    });
+    return count;
+  }
+
+  getSameHeadersFromExcel(headers: string[], excelHeaders: string[]): string[]{
+    const result = [];
+    for (let i = 0; i < headers.length; i++) {
+      if(headers[i] === this.sameHeader){
+        result.push(excelHeaders[i]);
+      }
+    }
+    return result;
+  }
+
+  setSameHeaders(): void{
+    if(this.inputToBeAdded !== undefined){
+      const target = this.inputToBeAdded.trim();
+      if(target.length > 0 && target !== this.sameHeader){
+        Swal.fire({
+          title: 'Are you sure?',
+          text: 'You want to change' + this.inputToBeAdded + ' to ' + this.sameHeader + ' ?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: 'rgba(139,139,139,0.69)',
+          confirmButtonText: 'Yes, do it!',
+          showClass: {
+            popup: 'animate__animated animate__jackInTheBox'
+          },
+          hideClass: {
+            popup: 'animate__animated animate__zoomOut'
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            this.inputToBeAdded = this.sameHeader;
+            this.Toast.fire({
+              icon: 'success',
+              title: 'Changed!',
+            });
+          }
+        });
+      }
+      else{
+        this.inputToBeAdded = this.sameHeader;
+      }
+    }
+    else{
+      this.inputToBeAdded = this.sameHeader;
+    }
+  }
+
+  editColumnKey(event: any, item: IColumnName): void{
+    // if(item.editFrom === undefined){
+    //   item.editFrom = item.from;
+    // }
+    // if(item.editTo === undefined){
+    //   item.editTo = item.to;
+    // }
+    item.editFrom = item.from;
+    item.editTo = item.to;
+    item.isEditing = true;
+    item.isJustCreated = false;
+  }
+
+  saveColumnKey(event: any, item: IColumnName, index: number): void{
+    if(item.editFrom !== undefined && item.editTo !== undefined){
+      item.editFrom = item.editFrom.trim();
+      item.editTo = item.editTo.trim();
+      if(item.editFrom.length > 0 && item.editTo.length > 0){
+        if(item.editFrom === item.editTo){
+          Swal.fire({
+            title: '<strong>Are you sure you want to <u>continue?</u></strong>',
+            text: 'Two columns are the same (' + item.editFrom + ' to ' + item.editTo + '). It won\'t change anything in your file!!!',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            confirmButtonColor: '#d33',
+          }).then((result) => {
+            /* Read more about isConfirmed, isDenied below */
+            if (result.isConfirmed) {
+              this.save(event, item, index);
+            }
+          });
+        }
+        else{
+          this.save(event, item, index);
+        }
+      }
+      else{
+        this.ToastTop.fire({
+          icon: 'error',
+          title: 'Name cannot be empty!!!'
+        });
+        if(item.editFrom.length <= 0){
+          this.addShakingAnimation('edit-columnKey-from-input' + index);
+        }
+        if(item.editTo.length <= 0){
+          this.addShakingAnimation('edit-columnKey-to-input' + index);
+        }
+      }
+    }
+    else{
+      this.ToastTop.fire({
+        icon: 'error',
+        title: 'Name cannot be empty!!!'
+      });
+      if(item.editFrom === undefined){
+        this.addShakingAnimation('edit-columnKey-from-input' + index);
+      }
+      if(item.editTo === undefined){
+        this.addShakingAnimation('edit-columnKey-to-input' + index);
+      }
+    }
+  }
+
+  cancelColumnKey(event: any, item: IColumnName, index: number): void{
+    if(item.isJustCreated){
+      if(
+        item.editFrom !== undefined && item.editFrom.trim() !== '' &&
+        item.editTo !== undefined && item.editTo.trim() !== ''
+      ){
+        Swal.fire({
+          title: 'Do you want to create the entity of ' + item.editFrom + ' to ' + item.editTo + ' ?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Create',
+          denyButtonText: `Don't create`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveColumnKey(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Nothing has been changed!!!'
+            });
+            this.displayReplacement?.columnKey?.splice(index, 1);
+            item.isEditing = false;
+          }
+        });
+      }
+      else{
+        this.displayReplacement?.columnKey?.splice(index, 1);
+      }
+    }
+    else{
+      if(item.editFrom !== undefined && item.editFrom !== item.from || item.editTo !== undefined && item.editTo !== item.to){
+        Swal.fire({
+          title: 'Do you want to save the changes?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Save',
+          denyButtonText: `Don't save`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveColumnKey(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Changes are not saved'
+            });
+            item.isEditing = false;
+          }
+        })
+      }
+      else{
+        item.isEditing = false;
+      }
+    }
+  }
+
+  deleteColumnKey(event: any, item: IColumnName, index: number): void{
+    if(item.isJustCreated){
+      item.editFrom = undefined;
+      item.editTo = undefined;
+      this.cancelColumnKey(event, item, index);
+    }
+    else{
+      Swal.fire({
+        title: 'Are you sure you want to delete it',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.displayReplacement?.columnKey?.splice(index, 1);
+          this.removeOrderList(0);
+          this.saveReplacementInLocalStorage(true);
+          this.Toast.fire({
+            icon: 'success',
+            title: 'Deleted!'
+          });
+        }
+      });
+    }
+    // if(popup && !item.isJustCreated){
+    //   Swal.fire({
+    //     title: 'Are you sure you want to delete it',
+    //     text: "You won't be able to revert this!",
+    //     icon: 'warning',
+    //     showCancelButton: true,
+    //     confirmButtonColor: '#d33',
+    //     cancelButtonColor: '#3085d6',
+    //     confirmButtonText: 'Yes, delete it!'
+    //   }).then((result) => {
+    //     if (result.isConfirmed) {
+    //       this.deleteColumnKey(event, item, index, false);
+    //       this.Toast.fire({
+    //         icon: 'success',
+    //         title: 'Deleted!'
+    //       });
+    //     }
+    //   })
+    // }
+    // else {
+    //   this.displayReplacement?.columnKey?.splice(index, 1);
+    //   this.saveReplacementInLocalStorage();
+    // }
+  }
+
+  selectColumnKey(event: any, item: IColumnName, index: number): void{
+    item.checked = !item.checked;
+    this.saveReplacementInLocalStorage(true);
+  }
+
+  createColumnKey(): void{
+    const c: IColumnName = new ColumnName();
+    c.id = this.getUUID();
+    c.isEditing = true;
+    c.isJustCreated = true;
+    if(this.displayReplacement !== undefined){
+      if(this.displayReplacement.columnKey === undefined) {
+        this.displayReplacement.columnKey = [];
+      }
+      this.displayReplacement.columnKey?.push(c);
+    }
+  }
+
+  editReplaceKey(event: any, item: IReplaceName): void{
+    item.editColumnName = item.columnName;
+    item.editFrom = item.from;
+    item.editTo = item.to;
+    item.isEditing = true;
+    item.isJustCreated = false;
+  }
+
+  saveReplaceKey(event: any, item: IReplaceName, index: number): void{
+    if(
+      item.editFrom !== undefined &&
+      item.editTo !== undefined &&
+      item.editColumnName !== undefined
+    ){
+      item.editColumnName = item.editColumnName.trim();
+      item.editFrom = item.editFrom.trim();
+      item.editTo = item.editTo.trim();
+      if(
+        item.editFrom.length > 0 &&
+        item.editTo.length > 0 &&
+        item.editColumnName.length > 0
+      ){
+        if(item.editFrom === item.editTo){
+          Swal.fire({
+            title: '<strong>Are you sure you want to <u>continue?</u></strong>',
+            text: 'Two columns are the same (' + item.editFrom + ' to ' + item.editTo + '). It won\'t change anything in your file!!!',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            confirmButtonColor: '#d33',
+          }).then((result) => {
+            /* Read more about isConfirmed, isDenied below */
+            if (result.isConfirmed) {
+              this.save(event, item, index);
+            }
+          });
+        }
+        else{
+          this.save(event, item, index);
+        }
+      }
+      else{
+        this.ToastTop.fire({
+          icon: 'error',
+          title: 'Name cannot be empty!!!'
+        });
+        if(item.editColumnName.length <= 0){
+          this.addShakingAnimation('edit-replaceKey-columnName-input' + index);
+        }
+        if(item.editFrom.length <= 0){
+          this.addShakingAnimation('edit-replaceKey-from-input' + index);
+        }
+        if(item.editTo.length <= 0){
+          this.addShakingAnimation('edit-replaceKey-to-input' + index);
+        }
+      }
+    }
+    else{
+      this.ToastTop.fire({
+        icon: 'error',
+        title: 'Name cannot be empty!!!'
+      });
+      if(item.editColumnName === undefined){
+        this.addShakingAnimation('edit-replaceKey-columnName-input' + index);
+      }
+      if(item.editFrom === undefined){
+        this.addShakingAnimation('edit-replaceKey-from-input' + index);
+      }
+      if(item.editTo === undefined){
+        this.addShakingAnimation('edit-replaceKey-to-input' + index);
+      }
+    }
+  }
+
+  cancelReplaceKey(event: any, item: IReplaceName, index: number): void{
+    if(item.isJustCreated){
+      if(
+        item.editFrom !== undefined && item.editFrom.trim() !== '' &&
+        item.editTo !== undefined && item.editTo.trim() !== '' &&
+        item.editColumnName !== undefined && item.editColumnName.trim() !== ''
+      ){
+        Swal.fire({
+          title: 'Do you want to create the entity (name: '+ item.editColumnName +' ) of ' + item.editFrom + ' to ' + item.editTo + ' ?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Create',
+          denyButtonText: `Don't create`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveReplaceKey(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Nothing has been changed!!!'
+            });
+            this.displayReplacement?.replaceKey?.splice(index, 1);
+            item.isEditing = false;
+          }
+        });
+      }
+      else{
+        this.displayReplacement?.replaceKey?.splice(index, 1);
+      }
+    }
+    else{
+      if(
+        item.editFrom !== undefined && item.editFrom !== item.from ||
+        item.editTo !== undefined && item.editTo !== item.to ||
+        item.editColumnName !== undefined && item.editColumnName !== item.columnName
+      ){
+        Swal.fire({
+          title: 'Do you want to save the changes?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Save',
+          denyButtonText: `Don't save`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveReplaceKey(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Changes are not saved'
+            });
+            item.isEditing = false;
+          }
+        })
+      }
+      else{
+        item.isEditing = false;
+      }
+    }
+  }
+
+  deleteReplaceKey(event: any, item: IReplaceName, index: number): void{
+    if(item.isJustCreated){
+      item.editFrom = undefined;
+      item.editTo = undefined;
+      item.editColumnName = undefined;
+      this.cancelReplaceKey(event, item, index);
+    }
+    else{
+      Swal.fire({
+        title: 'Are you sure you want to delete it',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.displayReplacement?.replaceKey?.splice(index, 1);
+          this.removeOrderList(1);
+          this.saveReplacementInLocalStorage(true);
+          this.Toast.fire({
+            icon: 'success',
+            title: 'Deleted!'
+          });
+        }
+      });
+    }
+    // if(popup && !item.isJustCreated){
+    //   Swal.fire({
+    //     title: 'Are you sure you want to delete it',
+    //     text: "You won't be able to revert this!",
+    //     icon: 'warning',
+    //     showCancelButton: true,
+    //     confirmButtonColor: '#d33',
+    //     cancelButtonColor: '#3085d6',
+    //     confirmButtonText: 'Yes, delete it!'
+    //   }).then((result) => {
+    //     if (result.isConfirmed) {
+    //       this.deleteReplaceKey(event, item, index, false);
+    //       this.Toast.fire({
+    //         icon: 'success',
+    //         title: 'Deleted!'
+    //       });
+    //     }
+    //   })
+    // }
+    // else {
+    //   this.displayReplacement?.replaceKey?.splice(index, 1);
+    //   this.saveReplacementInLocalStorage();
+    // }
+  }
+
+  selectReplaceKey(event: any, item: IReplaceName, index: number): void{
+    item.checked = !item.checked;
+    this.saveReplacementInLocalStorage(true);
+  }
+
+  createReplaceKey(): void{
+    const n: IReplaceName = new ReplaceName();
+    n.id = this.getUUID();
+    n.isEditing = true;
+    n.isJustCreated = true;
+    if(this.displayReplacement !== undefined){
+      if(this.displayReplacement.replaceKey === undefined) {
+        this.displayReplacement.replaceKey = [];
+      }
+    }
+    this.displayReplacement?.replaceKey?.push(n);
+  }
+
+  editRowKey(event: any, item: IRowName): void{
+    item.editFrom = item.from;
+    item.editTo = item.to;
+    item.isEditing = true;
+    item.isJustCreated = false;
+  }
+
+  saveRowKey(event: any, item: IRowName, index: number): void{
+    if(item.editFrom !== undefined && item.editTo !== undefined){
+      item.editFrom = item.editFrom.trim();
+      item.editTo = item.editTo.trim();
+      if(item.editFrom.length > 0 && item.editTo.length > 0){
+        if(item.editFrom === item.editTo){
+          Swal.fire({
+            title: '<strong>Are you sure you want to <u>continue?</u></strong>',
+            text: 'Two columns are the same (' + item.editFrom + ' to ' + item.editTo + '). It won\'t change anything in your file!!!',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            confirmButtonColor: '#d33',
+          }).then((result) => {
+            /* Read more about isConfirmed, isDenied below */
+            if (result.isConfirmed) {
+              this.save(event, item, index);
+            }
+          });
+        }
+        else{
+          this.save(event, item, index);
+        }
+
+      }
+      else{
+        this.ToastTop.fire({
+          icon: 'error',
+          title: 'Name cannot be empty!!!'
+        });
+        if(item.editFrom.length <= 0){
+          this.addShakingAnimation('edit-rowKey-from-input' + index);
+        }
+        if(item.editTo.length <= 0){
+          this.addShakingAnimation('edit-rowKey-to-input' + index);
+        }
+      }
+    }
+    else{
+      this.ToastTop.fire({
+        icon: 'error',
+        title: 'Name cannot be empty!!!'
+      });
+      if(item.editFrom === undefined){
+        this.addShakingAnimation('edit-rowKey-from-input' + index);
+      }
+      if(item.editTo === undefined){
+        this.addShakingAnimation('edit-rowKey-to-input' + index);
+      }
+    }
+  }
+
+  cancelRowKey(event: any, item: IRowName, index: number): void{
+    if(item.isJustCreated){
+      if(
+        item.editFrom !== undefined && item.editFrom.trim() !== '' &&
+        item.editTo !== undefined && item.editTo.trim() !== ''
+      ){
+        Swal.fire({
+          title: 'Do you want to create the entity of ' + item.editFrom + ' to ' + item.editTo + ' ?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Create',
+          denyButtonText: `Don't create`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveRowKey(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Nothing has been changed!!!'
+            });
+            this.displayReplacement?.rowKey?.splice(index, 1);
+            item.isEditing = false;
+          }
+        });
+      }
+      else{
+        this.displayReplacement?.rowKey?.splice(index, 1);
+      }
+    }
+    else{
+      if(item.editFrom !== undefined && item.editFrom !== item.from ||
+        item.editTo !== undefined && item.editTo !== item.to){
+        Swal.fire({
+          title: 'Do you want to save the changes?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Save',
+          denyButtonText: `Don't save`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveRowKey(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Changes are not saved'
+            });
+            item.isEditing = false;
+          }
+        })
+      }
+      else{
+        item.isEditing = false;
+      }
+    }
+  }
+
+  deleteRowKey(event: any, item: IColumnName, index: number): void{
+    if(item.isJustCreated){
+      item.editFrom = undefined;
+      item.editTo = undefined;
+      this.cancelRowKey(event, item, index);
+    }
+    else{
+      Swal.fire({
+        title: 'Are you sure you want to delete it',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.displayReplacement?.rowKey?.splice(index, 1);
+          this.removeOrderList(2);
+          this.saveReplacementInLocalStorage(true);
+          this.Toast.fire({
+            icon: 'success',
+            title: 'Deleted!'
+          });
+        }
+      });
+    }
+    // if(popup && !item.isJustCreated){
+    //   Swal.fire({
+    //     title: 'Are you sure you want to delete it',
+    //     text: "You won't be able to revert this!",
+    //     icon: 'warning',
+    //     showCancelButton: true,
+    //     confirmButtonColor: '#d33',
+    //     cancelButtonColor: '#3085d6',
+    //     confirmButtonText: 'Yes, delete it!'
+    //   }).then((result) => {
+    //     if (result.isConfirmed) {
+    //       this.deleteColumnKey(event, item, index);
+    //       this.Toast.fire({
+    //         icon: 'success',
+    //         title: 'Deleted!'
+    //       });
+    //     }
+    //   })
+    // }
+    // else {
+    //   this.displayReplacement?.rowKey?.splice(index, 1);
+    //   this.saveReplacementInLocalStorage();
+    // }
+  }
+
+  selectRowKey(event: any, item: IReplaceName, index: number): void{
+    item.checked = !item.checked;
+    this.saveReplacementInLocalStorage(true);
+  }
+
+  createRowKey(): void{
+    const n: IRowName = new RowName();
+    n.id = this.getUUID();
+    n.isEditing = true;
+    n.isJustCreated = true;
+    if(this.displayReplacement !== undefined){
+      if(this.displayReplacement.replaceKey === undefined) {
+        this.displayReplacement.replaceKey = [];
+      }
+    }
+    this.displayReplacement?.rowKey?.push(n);
+  }
+
+  switchFromAndTo(event: any, item: IColumnName | IReplaceName | IRowName, index: number): void{
+    const temp = item.editTo
+    item.editTo = item.editFrom;
+    item.editFrom = temp;
+  }
+
+  setFromNull(event: any, item: IColumnName | IReplaceName | IRowName, index: number): void{
+    if(item.editTo === this.nullMsg){
+      item.editTo = undefined;
+    }
+    if(item.editFrom === this.nullMsg){
+      item.editFrom = undefined;
+    }
+    else{
+      item.editFrom = this.nullMsg;
+    }
+  }
+
+  setToNull(event: any, item: IColumnName | IReplaceName | IRowName, index: number): void{
+    if(item.editFrom === this.nullMsg){
+      item.editFrom = undefined;
+    }
+    if(item.editTo === this.nullMsg){
+      item.editTo = undefined;
+    }
+    else{
+      item.editTo = this.nullMsg;
+    }
+  }
+
+  resetNull(event: any, item: IColumnName | IReplaceName | IRowName, index: number): void{
+    if(item.editFrom === this.nullMsg){
+      item.editFrom = undefined;
+    }
+    if(item.editTo === this.nullMsg){
+      item.editTo = undefined;
+    }
+  }
+
+  checkConvertTypeOption(i: number): boolean{
+    return this.behavior?.outputFormatsIndex === undefined? i === 9 : Number(this.behavior.outputFormatsIndex) === i;
+  }
+
+  setConvertTypeOption(event: any): void{
+    const selectedIndex = event.target.value;
+    console.warn(selectedIndex)
+    if(this.behavior === undefined){
+      const cb = new Behavior();
+      cb.outputFormatsIndex = selectedIndex;
+      this.behavior = cb;
+    }
+    else {
+      this.behavior.outputFormatsIndex = selectedIndex;
+    }
+    localStorage.setItem(this.storageCB, JSON.stringify(this.behavior));
+  }
+
+  swapOrder(option: boolean): void{
+    if(option){
+      const temp = this.orderList[0];
+      this.orderList[0] = this.orderList[1];
+      this.orderList[1] = temp;
+    }
+    else{
+      const temp = this.orderList[1];
+      this.orderList[1] = this.orderList[2];
+      this.orderList[2] = temp;
+    }
+  }
+
+  checkIfDisplayOrder(index: number): boolean{
+    switch(index) {
+      case 0: {
+        return this.displayReplacement?.columnKey !== undefined &&
+          this.displayReplacement.columnKey !== null &&
+          this.displayReplacement.columnKey.length > 0;
+      }
+      case 1: {
+        return this.displayReplacement?.replaceKey !== undefined &&
+          this.displayReplacement.replaceKey !== null &&
+          this.displayReplacement.replaceKey.length > 0;
+      }
+      case 2: {
+        return this.displayReplacement?.rowKey !== undefined &&
+          this.displayReplacement.rowKey !== null &&
+          this.displayReplacement.rowKey.length > 0;
+      }
+      default: {
+        return false;
+      }
+    }
+  }
+
+  addingOrderList(): void{
+    if(this.checkIfDisplayOrder(0) && !this.orderList.includes('A')){
+      this.orderList.push('A');
+    }
+    if(this.checkIfDisplayOrder(1) && !this.orderList.includes('B')){
+      this.orderList.push('B');
+    }
+    if(this.checkIfDisplayOrder(2) && !this.orderList.includes('C')){
+      this.orderList.push('C');
+    }
+  }
+
+  removeOrderList(option: number): void{
+    let i = -1;
+    switch(option) {
+      case 0: {
+        i = this.orderList.indexOf('A');
+        break;
+      }
+      case 1: {
+        i = this.orderList.indexOf('B');
+        break;
+      }
+      case 2: {
+        i = this.orderList.indexOf('C');
+        break
+      }
+      default: {
+        i = -1;
+      }
+    }
+    if(i > -1 && !this.checkIfDisplayOrder(option)){
+      this.orderList.splice(i, 1);
+    }
+  }
+
+  checkHowManyExchangeIcons(): number{
+    let count = 0;
+    if(this.displayReplacement !== undefined){
+      if(
+        this.displayReplacement.columnKey !== undefined &&
+        this.displayReplacement.columnKey !== null &&
+        this.displayReplacement.columnKey.length > 0 &&
+        this.displayReplacement.columnKey[0].from !== undefined &&
+        this.displayReplacement.columnKey[0].to !== undefined
+      ){
+        count++;
+      }
+      if(
+        this.displayReplacement.replaceKey !== undefined &&
+        this.displayReplacement.replaceKey !== null &&
+        this.displayReplacement.replaceKey.length > 0 &&
+        this.displayReplacement.replaceKey[0].columnName !== undefined &&
+        this.displayReplacement.replaceKey[0].from !== undefined &&
+        this.displayReplacement.replaceKey[0].to !== undefined
+      ){
+        count++;
+      }
+      if(
+        this.displayReplacement.rowKey !== undefined &&
+        this.displayReplacement.rowKey !== null &&
+        this.displayReplacement.rowKey.length > 0 &&
+        this.displayReplacement.rowKey[0].from !== undefined &&
+        this.displayReplacement.rowKey[0].to !== undefined
+      ){
+        count++;
+      }
+    }
+    return count;
+  }
+
+  replaceHeaders(invoiceObj: any, option: string): any{
+    if(this.displayReplacement !== undefined){
+      switch (option) {
+        case 'A': {
+          this.displayReplacement.columnKey?.forEach((c: IColumnName) => {
+            if(c.checked){
+              let newInvoiceObject = {};
+              Object.keys(invoiceObj).forEach(key => {
+                if (c.from !== undefined && c.to !== undefined && key === c.from) {
+                  let newPair = { [c.to]: invoiceObj[key] };
+                  newInvoiceObject = { ...newInvoiceObject, ...newPair }
+                } else {
+                  newInvoiceObject = { ...newInvoiceObject, [key]: invoiceObj[key] }
+                }
+              });
+              invoiceObj = newInvoiceObject;
+            }
+          });
+          break;
+        }
+        case 'B': {
+          this.displayReplacement.replaceKey?.forEach((r: IReplaceName) => {
+            if(r.checked){
+              if(r.from !== undefined && r.to !== undefined && r.columnName !== undefined){
+                if(invoiceObj.hasOwnProperty(r.columnName)){
+                  if(invoiceObj[r.columnName] === r.from){
+                    invoiceObj[r.columnName] = r.to;
+                  }
+                }
+              }
+            }
+          });
+          break;
+        }
+        case 'C': {
+          this.displayReplacement.rowKey?.forEach((row: IRowName) => {
+            if(row.checked){
+              if(row.from !== undefined && row.to !== undefined){
+                Object.keys(invoiceObj).forEach(key => {
+                  if(invoiceObj[key] === row.from){
+                    invoiceObj[key] = row.to;
+                  }
+                });
+              }
+            }
+          });
+          break;
+        }
+      }
+    }
+    return invoiceObj
+  }
+
+  protected addShakingAnimation(targetId: string): void {
     document.getElementById(targetId)?.classList.add('animate__animated');
     document.getElementById(targetId)?.classList.add('animate__headShake');
     setTimeout(() => {
@@ -872,8 +2026,170 @@ export class AppComponent implements OnInit {
     }, 500);
   }
 
-  scroll(el: HTMLElement) {
-    el.scrollIntoView();
+  protected resetReplacementChecked(
+    list: IReplacement[],
+    isReplacementUndefined: boolean,
+    isColumnNameUndefined: boolean,
+    isReplaceNameUndefined: boolean,
+    isRowNameUndefined: boolean
+  ): void{
+    list.forEach((item: IReplacement) => {
+      if(isReplacementUndefined){
+        item.checked = undefined;
+      }
+      if(isColumnNameUndefined){
+        item.columnKey?.forEach((c: IColumnName) => {
+          c.checked = undefined;
+        });
+      }
+      if(isReplaceNameUndefined){
+        item.replaceKey?.forEach((r: IReplaceName) => {
+          r.checked = undefined;
+        });
+      }
+      if(isRowNameUndefined){
+        item.rowKey?.forEach((r: IReplaceName) => {
+          r.checked = undefined;
+        });
+      }
+    });
   }
-  // scroll() {}
+
+  protected getHeadersFromWorkSheet(ws: WorkSheet): string[]{
+    return XLSX.utils.sheet_to_json(ws, {header:1, raw:false})[0] as string[];
+  }
+
+  protected getUUID(): string{
+    let tempId = uuid.v4();
+    while (!this.checkIdIsUnique(tempId)){
+      tempId = uuid.v4();
+    }
+    return tempId;
+  }
+
+  protected checkIdIsUnique(id: string): boolean{
+    if(this.replacements !== undefined){
+      for (const replacement of this.replacements) {
+        if(replacement.id === id){
+          return false;
+        }
+        if(replacement.columnKey !== undefined && replacement.columnKey !== null){
+          for (const columnKeyElement of replacement.columnKey) {
+            if(columnKeyElement.id === id){
+              return false;
+            }
+          }
+        }
+        if(replacement.replaceKey !== undefined && replacement.replaceKey !== null){
+          for (const replaceKeyElement of replacement.replaceKey) {
+            if(replaceKeyElement.id === id){
+              return false;
+            }
+          }
+        }
+        if(replacement.rowKey !== undefined && replacement.rowKey !== null){
+          for (const replacementElement of replacement.rowKey) {
+            if(replacementElement.id === id){
+              return false;
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  protected resetIsEditing(replacements: IReplacement[]): void{
+    replacements.forEach((r: IReplacement) => {
+      r.isEditing = false;
+      r.isJustCreated = false;
+      r.checked = false;
+      r.columnKey?.forEach((c: IColumnName) => {
+        c.isEditing = false;
+        c.isJustCreated = false;
+      });
+      r.replaceKey?.forEach((rk: IReplaceName) => {
+        rk.isEditing = false;
+        rk.isJustCreated = false;
+      });
+      r.rowKey?.forEach((row: IRowName) => {
+        row.isEditing = false;
+        row.isJustCreated = false;
+      });
+    });
+    localStorage.setItem(this.storageReplaceName, JSON.stringify(replacements));
+  }
+
+
+  protected rearrangeJustCreated(replacements: IReplacement[], isCloned?: boolean): IReplacement[]{
+    // let cloned: IReplacement[];
+    // console.warn(replacements)
+    // if(isCloned){
+    //   cloned = replacements.map(x => Object.assign({}, x));
+    // }
+    // else{
+    //   cloned = replacements;
+    // }
+    const result: IReplacement[] = [];
+    let replacementCheckedIndex = -1;
+    replacements.forEach((r: IReplacement, index: number) => {
+      if(r.checked){
+        replacementCheckedIndex = index;
+      }
+      if(!r.isJustCreated){
+        const cloneReplacement: IReplacement = Object.assign({}, r);
+        cloneReplacement.columnKey = [];
+        cloneReplacement.replaceKey = [];
+        cloneReplacement.rowKey = [];
+        r.columnKey?.forEach((c: IColumnName, cIndex: number) => {
+          if(!c.isJustCreated){
+            cloneReplacement.columnKey?.push(Object.assign({}, c));
+          }
+        });
+        r.replaceKey?.forEach((rk: IReplaceName, rkIndex: number) => {
+          if(!rk.isJustCreated){
+            cloneReplacement.replaceKey?.push(Object.assign({}, rk));
+          }
+        });
+        r.rowKey?.forEach((row: IRowName, rowIndex: number) => {
+          if(!row.isJustCreated){
+            cloneReplacement.rowKey?.push(Object.assign({}, row));
+          }
+        });
+        result.push(cloneReplacement);
+      }
+    });
+    if(isCloned){
+      return result;
+    }
+    else{
+      this.replacements = result;
+      if(replacementCheckedIndex !== -1){
+        this.displayReplacement = this.replacements[replacementCheckedIndex];
+      }
+    }
+
+    return result;
+  }
+
+  protected save(event: any, item: IColumnName | IReplaceName | IRowName, index: number): void{
+     if ("columnName" in item) {
+       item.columnName = item.editColumnName;
+     }
+     if ("editColumnName" in item) {
+       item.editColumnName = undefined;
+     }
+    item.from = item.editFrom;
+    item.editFrom = undefined;
+    item.to = item.editTo;
+    item.editTo = undefined;
+    item.isEditing = false;
+    item.isJustCreated = false;
+    this.addingOrderList();
+    this.saveReplacementInLocalStorage(true);
+    this.Toast.fire({
+      icon: 'success',
+      title: 'Saved!'
+    });
+  }
 }

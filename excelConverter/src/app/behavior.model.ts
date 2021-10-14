@@ -3,7 +3,9 @@ export interface IBehavior {
   fileName?: string;
   auto?: boolean;
   fileAccepted?: boolean;
+  headerConvertor?: boolean;
   selectedIndex?: number;
+  outputFormatsIndex?: number;
   addingMode?: boolean;
   extra?: string;
 }
@@ -14,7 +16,9 @@ export class Behavior implements IBehavior {
     public fileName?: string,
     public auto?: boolean,
     public fileAccepted?: boolean,
-    public selectedInde?: number,
+    public headerConvertor?: boolean,
+    public selectedIndex?: number,
+    public outputFormatsIndex?: number,
     public addingMode?: boolean,
     public extra?: string
   ) {}

@@ -1,4 +1,4 @@
-export interface IColumnName {
+export interface IRowName {
   id?: string;
   from?: string;
   to?: string;
@@ -9,15 +9,15 @@ export interface IColumnName {
   isJustCreated?: boolean;
 }
 
-export class ColumnName implements IColumnName {
+export class RowName implements IRowName {
   constructor(
     public id?: string,
-    public from?: string,
-    public to?: string,
+    public from ?: string,
+    public to ?: string,
     public editFrom?: string,
     public editTo?: string,
     public checked?: boolean,
     public isEditing?: boolean,
     public isJustCreated?: boolean
   ) {}
-}
+} {}
