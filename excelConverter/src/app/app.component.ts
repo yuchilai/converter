@@ -1404,8 +1404,8 @@ export class AppComponent implements OnInit {
       if(this.displayReplacement.columnKey === undefined) {
         this.displayReplacement.columnKey = [];
       }
-      this.displayReplacement.columnKey?.push(c);
     }
+    this.displayReplacement?.columnKey?.push(c);
   }
 
   editReplaceKey(event: any, item: IReplaceName): void{
@@ -2004,7 +2004,12 @@ export class AppComponent implements OnInit {
               if(row.from !== undefined && row.to !== undefined){
                 Object.keys(invoiceObj).forEach(key => {
                   if(invoiceObj[key] === row.from){
-                    invoiceObj[key] = row.to;
+                    if(row.to === this.nullMsg){
+                      invoiceObj[key] = undefined;
+                    }
+                    else{
+                      invoiceObj[key] = row.to;
+                    }
                   }
                 });
               }
