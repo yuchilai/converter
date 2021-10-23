@@ -1,6 +1,7 @@
 import { IColumnName } from "./columnName.model";
 import {IReplaceName} from "./replaceName.model";
 import {IRowName} from "./rowName.model";
+import {DecimalPlace, IDecimalPlaces} from "./decimalPlaces.model";
 
 
 export interface IReplacement {
@@ -13,6 +14,8 @@ export interface IReplacement {
   editRowKey?: IRowName[] | null;
   replaceKey?: IReplaceName[] | null;
   editReplaceKey?: IReplaceName[] | null;
+  decimalPlace?: IDecimalPlaces[] | null;
+  editDecimalPlace?: IDecimalPlaces[] | null;
   checked?: boolean;
   isEditing?: boolean;
   isJustCreated?: boolean;
@@ -29,6 +32,8 @@ export class Replacement implements IReplacement {
     public editRowKey?: IRowName[] | null,
     public replaceKey?: IReplaceName[] | null,
     public editReplaceKey?: IReplaceName[] | null,
+    public decimalPlace?: IDecimalPlaces[] | null,
+    public editDecimalPlace?: IDecimalPlaces[] | null,
     public checked?: boolean,
     public isEditing?: boolean,
     public isJustCreated?: boolean

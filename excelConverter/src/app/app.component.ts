@@ -1,4 +1,4 @@
-import {Component, ElementRef, HostListener, OnInit, QueryList, ViewChild, ViewChildren, Inject, } from '@angular/core';
+import {Component, ElementRef, HostListener, OnInit, QueryList, ViewChild, ViewChildren,} from '@angular/core';
 import {ExcelService} from './service/excel.service';
 import * as XLSX from 'xlsx';
 import {WorkSheet} from 'xlsx';
@@ -14,6 +14,7 @@ import {IReplaceName, ReplaceName} from "./entities/replaceName.model";
 import * as uuid from 'uuid';
 import {IRowName, RowName} from "./entities/rowName.model";
 import {OUTPUT_FORMATS} from "./entities/xlsxBookType";
+import {DecimalPlace, IDecimalPlaces} from "./entities/decimalPlaces.model";
 
 @Component({
   selector: 'my-app',
@@ -27,6 +28,12 @@ export class AppComponent implements OnInit {
   @ViewChild('editArea')
   editArea?: ElementRef;
 
+  @ViewChild('advanceArea')
+  advanceArea?: ElementRef;
+
+  @ViewChild('uploadArea')
+  uploadArea?: ElementRef;
+
   @ViewChild('topOne')
   topOne?: ElementRef;
 
@@ -37,6 +44,14 @@ export class AppComponent implements OnInit {
   advanceThreeChoices?: ElementRef;
 
   @ViewChildren('layoutList') layoutList?: QueryList<ElementRef>;
+
+  @ViewChildren('columnKeyCells') columnKeyCells?: QueryList<ElementRef>;
+
+  @ViewChildren('replaceKeyCells') replaceKeyCells?: QueryList<ElementRef>;
+
+  @ViewChildren('replaceAllCells') replaceAllCells?: QueryList<ElementRef>;
+
+  @ViewChildren('decimalPlaceCells') decimalPlaceCells?: QueryList<ElementRef>;
 
   name = 'Certify to Sage Intacct AP Converter';
   willDownload = false;
@@ -97,6 +112,15 @@ export class AppComponent implements OnInit {
   convertTypeList?: any;
   outputTypeIndex = 9;
   orderList: string[] = [];
+  exchangeArrowBtnOfOrderList: string[] = [];
+  defaultPlaceValue = 5;
+  floor = 'Floor';
+  round = 'Round';
+  ceil = 'Ceil';
+  defaultMathMethodOptions = [this.floor, this.round, this.ceil];
+  prefix = 'x.';
+  height?: number;
+  nullForApplied = '(NULL)';
 
   Toast = Swal.mixin({
     toast: true,
@@ -361,9 +385,8 @@ export class AppComponent implements OnInit {
                 }
                 // console.log(isObjNotEmpty)
                 for (const option of this.orderList) {
-                  invoiceObj = this.replaceHeaders(invoiceObj, option);
+                  invoiceObj = this.advanceReplace(invoiceObj, option);
                 }
-                console.warn(invoiceObj)
                 if (isObjNotEmpty) {
                   this.invoices.push(invoiceObj);
                 }
@@ -494,6 +517,63 @@ export class AppComponent implements OnInit {
       event.previousIndex,
       event.currentIndex
     );
+  }
+
+  dropColumnKeyOrder(event: CdkDragDrop<string[]>) {
+    if(this.displayReplacement && this.displayReplacement.columnKey){
+      moveItemInArray(
+        this.displayReplacement.columnKey,
+        event.previousIndex,
+        event.currentIndex
+      );
+      this.saveReplacementInLocalStorage(true);
+    }
+  }
+
+  dropReplaceKeyOrder(event: CdkDragDrop<string[]>) {
+    if(this.displayReplacement && this.displayReplacement.replaceKey){
+      moveItemInArray(
+        this.displayReplacement.replaceKey,
+        event.previousIndex,
+        event.currentIndex
+      );
+      this.saveReplacementInLocalStorage(true);
+    }
+  }
+
+  dropReplaceAllOrder(event: CdkDragDrop<string[]>) {
+    if(this.displayReplacement && this.displayReplacement.rowKey){
+      moveItemInArray(
+        this.displayReplacement.rowKey,
+        event.previousIndex,
+        event.currentIndex
+      );
+      this.saveReplacementInLocalStorage(true);
+    }
+  }
+
+  dropDecimalPlaceOrder(event: CdkDragDrop<string[]>) {
+    if(this.displayReplacement && this.displayReplacement.decimalPlace){
+      moveItemInArray(
+        this.displayReplacement.decimalPlace,
+        event.previousIndex,
+        event.currentIndex
+      );
+      this.saveReplacementInLocalStorage(true);
+    }
+  }
+
+  dragMoved(event: any): void{
+    this.height = event.source.element.nativeElement.offsetHeight;
+    console.warn(event.source)
+    console.warn(event.source.element.nativeElement.offsetHeight)
+    console.warn(event.source.element.nativeElement.clientHeight);
+
+  }
+
+  cdkDragStarted(event:any, dropIndex: number): void{
+    this.height = event.source.element.nativeElement.offsetHeight;
+    console.warn(this.height)
   }
 
   editOrder(i: number, item: string[]): void {
@@ -766,8 +846,7 @@ export class AppComponent implements OnInit {
 
   createADefaultKeyObj(): string[] {
     const invoice = new Invoice();
-    const invoiceKeys: string[] = Object.keys(invoice);
-    return invoiceKeys;
+    return Object.keys(invoice);
   }
 
   changeAcceptedFile(): void {
@@ -1132,7 +1211,7 @@ export class AppComponent implements OnInit {
   selectReplacement(event: any, item: IReplacement, i: number): void{
     // event.preventDefault();
     if(this.replacements !== undefined){
-      this.resetReplacementChecked(this.replacements, true, false, false, false);
+      this.resetReplacementChecked(this.replacements, true, false, false, false, false);
       item.checked = true;
     }
     this.displayReplacement = item;
@@ -1800,6 +1879,180 @@ export class AppComponent implements OnInit {
     this.displayReplacement?.rowKey?.push(n);
   }
 
+  editDecimalPlace(event: any, item: IDecimalPlaces): void{
+    item.editColumnName = item.columnName;
+    item.editDecimalPlacesOption = item.decimalPlacesOption;
+    item.editMathMethod = item.mathMethod;
+    if(
+      item.editDecimalPlacesOption !== undefined &&
+      item.decimalPlacesOptionList !== undefined &&
+      item.decimalPlacesOptionList.length < (item.editDecimalPlacesOption.length - 1)
+    ){
+      item.decimalPlacesOptionList = this.getDecimalPlaces(item.editDecimalPlacesOption.length - 1);
+    }
+    item.isEditing = true;
+    item.isJustCreated = false;
+
+  }
+
+  saveDecimalPlace(event: any, item: IDecimalPlaces, index: number): void{
+    if(
+      item.editDecimalPlacesOption !== undefined &&
+      item.editColumnName !== undefined &&
+      item.editMathMethod !== undefined
+    ){
+      item.editColumnName = item.editColumnName.trim();
+      if(
+        item.editColumnName.length > 0 &&
+        item.editDecimalPlacesOption.length > 0 &&
+        item.editMathMethod.length > 0
+      ){
+        this.decimalPlaceSave(event, item, index);
+      }
+      else{
+        this.ToastTop.fire({
+          icon: 'error',
+          title: 'Name cannot be empty!!!'
+        });
+        if(item.editColumnName.length <= 0){
+          this.addShakingAnimation('edit-decimalPlace-columnName-input' + index);
+        }
+      }
+    }
+    else{
+      this.ToastTop.fire({
+        icon: 'error',
+        title: 'Name cannot be empty!!!'
+      });
+      if(item.editColumnName === undefined){
+        this.addShakingAnimation('edit-decimalPlace-columnName-input' + index);
+      }
+    }
+  }
+
+  cancelDecimalPlace(event: any, item: IDecimalPlaces, index: number): void{
+    if(item.isJustCreated){
+      if(
+        item.editDecimalPlacesOption !== undefined && item.editDecimalPlacesOption.trim() !== '' &&
+        item.editColumnName !== undefined && item.editColumnName.trim() !== ''
+      ){
+        Swal.fire({
+          title: 'Do you want to create the entity (name: '+ item.editColumnName +' ) of ' + item.editDecimalPlacesOption + ' ?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Create',
+          denyButtonText: `Don't create`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveDecimalPlace(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Nothing has been changed!!!'
+            });
+            this.displayReplacement?.decimalPlace?.splice(index, 1);
+            item.isEditing = false;
+          }
+        });
+      }
+      else{
+        this.displayReplacement?.decimalPlace?.splice(index, 1);
+      }
+    }
+    else{
+      if(
+        item.editDecimalPlacesOption !== undefined && item.editDecimalPlacesOption !== item.decimalPlacesOption ||
+        item.editColumnName !== undefined && item.editColumnName !== item.columnName
+      ){
+        Swal.fire({
+          title: 'Do you want to save the changes?',
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: 'Save',
+          denyButtonText: `Don't save`,
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            this.saveDecimalPlace(event, item, index);
+          } else if (result.isDenied) {
+            this.ToastTop.fire({
+              icon: 'info',
+              title: 'Changes are not saved'
+            });
+            item.isEditing = false;
+          }
+        })
+      }
+      else{
+        item.isEditing = false;
+      }
+    }
+  }
+
+  deleteDecimalPlace(event: any, item: IDecimalPlaces, index: number): void{
+    if(item.isJustCreated){
+      item.editDecimalPlacesOption = undefined;
+      item.editColumnName = undefined;
+      this.cancelDecimalPlace(event, item, index);
+    }
+    else{
+      Swal.fire({
+        title: 'Are you sure you want to delete it',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.displayReplacement?.decimalPlace?.splice(index, 1);
+          this.removeOrderList(3);
+          this.saveReplacementInLocalStorage(true);
+          this.Toast.fire({
+            icon: 'success',
+            title: 'Deleted!'
+          });
+        }
+      });
+    }
+  }
+
+  selectDecimalPlace(event: any, item: IDecimalPlaces, index: number): void{
+    item.checked = !item.checked;
+    this.saveReplacementInLocalStorage(true);
+  }
+
+  createDecimalPlace(): void{
+    const d: IDecimalPlaces = new DecimalPlace();
+    d.id = this.getUUID();
+    d.decimalPlacesOptionList = this.getDecimalPlaces(this.defaultPlaceValue);
+    d.editDecimalPlacesOption = this.prefix;
+    d.editMathMethod = this.floor;
+    d.isEditing = true;
+    d.isJustCreated = true;
+    if(this.displayReplacement !== undefined){
+      if(this.displayReplacement.decimalPlace === undefined) {
+        this.displayReplacement.decimalPlace = [];
+      }
+    }
+    this.displayReplacement?.decimalPlace?.push(d);
+  }
+
+  addDecimalPlacesToList(event: any, item: IDecimalPlaces, index: number): void{
+    let qty = this.defaultPlaceValue;
+    if(item.decimalPlacesOptionList !== undefined){
+      qty = item.decimalPlacesOptionList.length > this.defaultPlaceValue ? item.decimalPlacesOptionList.length + 1 : this.defaultPlaceValue + 1;
+    }
+    item.decimalPlacesOptionList = this.getDecimalPlaces(qty);
+  }
+
+  resetDecimalPlacesList(event: any, item: IDecimalPlaces, index: number): void{
+    item.editDecimalPlacesOption = this.prefix;
+    item.decimalPlacesOptionList = this.getDecimalPlaces(this.defaultPlaceValue);
+  }
+
   switchFromAndTo(event: any, item: IColumnName | IReplaceName | IRowName, index: number): void{
     const temp = item.editTo
     item.editTo = item.editFrom;
@@ -1857,17 +2110,10 @@ export class AppComponent implements OnInit {
     localStorage.setItem(this.storageCB, JSON.stringify(this.behavior));
   }
 
-  swapOrder(option: boolean): void{
-    if(option){
-      const temp = this.orderList[0];
-      this.orderList[0] = this.orderList[1];
-      this.orderList[1] = temp;
-    }
-    else{
-      const temp = this.orderList[1];
-      this.orderList[1] = this.orderList[2];
-      this.orderList[2] = temp;
-    }
+  swapOrder(option: number): void{
+    const temp = this.orderList[option];
+    this.orderList[option] = this.orderList[option+1];
+    this.orderList[option+1] = temp;
   }
 
   checkIfDisplayOrder(index: number): boolean{
@@ -1875,22 +2121,62 @@ export class AppComponent implements OnInit {
       case 0: {
         return this.displayReplacement?.columnKey !== undefined &&
           this.displayReplacement.columnKey !== null &&
-          this.displayReplacement.columnKey.length > 0;
+          this.displayReplacement.columnKey.length > 0 &&
+          !this.displayReplacement.columnKey[0].isJustCreated;
       }
       case 1: {
         return this.displayReplacement?.replaceKey !== undefined &&
           this.displayReplacement.replaceKey !== null &&
-          this.displayReplacement.replaceKey.length > 0;
+          this.displayReplacement.replaceKey.length > 0 &&
+          !this.displayReplacement.replaceKey[0].isJustCreated;
       }
       case 2: {
         return this.displayReplacement?.rowKey !== undefined &&
           this.displayReplacement.rowKey !== null &&
-          this.displayReplacement.rowKey.length > 0;
+          this.displayReplacement.rowKey.length > 0 &&
+          !this.displayReplacement.rowKey[0].isJustCreated;
+      }
+      case 3: {
+        return this.displayReplacement?.decimalPlace !== undefined &&
+          this.displayReplacement.decimalPlace !== null &&
+          this.displayReplacement.decimalPlace.length > 0 &&
+          !this.displayReplacement.decimalPlace[0].isJustCreated;
       }
       default: {
         return false;
       }
     }
+  }
+
+  checkIfOneOfThemIsChecked(): boolean{
+    let checkPoint = false;
+    if(this.replacements !== undefined){
+      this.replacements.forEach((r: IReplacement) => {
+        if(r.checked){
+          r.columnKey?.forEach((c: IColumnName) => {
+            if(c.checked){
+              checkPoint = true;
+            }
+          });
+          r.replaceKey?.forEach((rk: IReplaceName) => {
+            if(rk.checked){
+              checkPoint = true;
+            }
+          });
+          r.rowKey?.forEach((row: IRowName) => {
+            if(row.checked){
+              checkPoint = true;
+            }
+          });
+          r.decimalPlace?.forEach((dp: IDecimalPlaces) => {
+            if(dp.checked){
+              checkPoint = true;
+            }
+          });
+        }
+      });
+    }
+    return checkPoint;
   }
 
   addingOrderList(): void{
@@ -1903,10 +2189,22 @@ export class AppComponent implements OnInit {
     if(this.checkIfDisplayOrder(2) && !this.orderList.includes('C')){
       this.orderList.push('C');
     }
+    if(this.checkIfDisplayOrder(3) && !this.orderList.includes('D')){
+      this.orderList.push('D');
+    }
+    this.addingOrRevisingOrderListExchangeBtn();
+  }
+
+  addingOrRevisingOrderListExchangeBtn(): void{
+    this.exchangeArrowBtnOfOrderList = [];
+    for (let i = 1; i < this.orderList.length; i++) {
+      this.exchangeArrowBtnOfOrderList.push(String(this.orderList.length));
+    }
+    console.warn(this.exchangeArrowBtnOfOrderList)
   }
 
   removeOrderList(option: number): void{
-    let i = -1;
+    let i: number;
     switch(option) {
       case 0: {
         i = this.orderList.indexOf('A');
@@ -1918,7 +2216,11 @@ export class AppComponent implements OnInit {
       }
       case 2: {
         i = this.orderList.indexOf('C');
-        break
+        break;
+      }
+      case 3: {
+        i = this.orderList.indexOf('D');
+        break;
       }
       default: {
         i = -1;
@@ -1927,6 +2229,7 @@ export class AppComponent implements OnInit {
     if(i > -1 && !this.checkIfDisplayOrder(option)){
       this.orderList.splice(i, 1);
     }
+    this.addingOrRevisingOrderListExchangeBtn();
   }
 
   checkHowManyExchangeIcons(): number{
@@ -1960,11 +2263,21 @@ export class AppComponent implements OnInit {
       ){
         count++;
       }
+      if(
+        this.displayReplacement.decimalPlace !== undefined &&
+        this.displayReplacement.decimalPlace !== null &&
+        this.displayReplacement.decimalPlace.length > 0 &&
+        this.displayReplacement.decimalPlace[0].columnName !== undefined &&
+        this.displayReplacement.decimalPlace[0].decimalPlacesOption !== undefined &&
+        this.displayReplacement.decimalPlace[0].mathMethod !== undefined
+      ){
+        count++;
+      }
     }
     return count;
   }
 
-  replaceHeaders(invoiceObj: any, option: string): any{
+  advanceReplace(invoiceObj: any, option: string): any{
     if(this.displayReplacement !== undefined){
       switch (option) {
         case 'A': {
@@ -1972,8 +2285,16 @@ export class AppComponent implements OnInit {
             if(c.checked){
               let newInvoiceObject = {};
               Object.keys(invoiceObj).forEach(key => {
-                if (c.from !== undefined && c.to !== undefined && key === c.from) {
-                  let newPair = { [c.to]: invoiceObj[key] };
+                let from = c.from
+                if(from === this.nullMsg){
+                  from = "";
+                }
+                if (c.from !== undefined && c.to !== undefined && key === from) {
+                  let to = c.to;
+                  if(to === this.nullMsg){
+                    to = ""
+                  }
+                  let newPair = { [to]: invoiceObj[key] };
                   newInvoiceObject = { ...newInvoiceObject, ...newPair }
                 } else {
                   newInvoiceObject = { ...newInvoiceObject, [key]: invoiceObj[key] }
@@ -1989,8 +2310,17 @@ export class AppComponent implements OnInit {
             if(r.checked){
               if(r.from !== undefined && r.to !== undefined && r.columnName !== undefined){
                 if(invoiceObj.hasOwnProperty(r.columnName)){
-                  if(invoiceObj[r.columnName] === r.from){
-                    invoiceObj[r.columnName] = r.to;
+                  let from = r.from;
+                  if(from === this.nullMsg){
+                    from = "";
+                  }
+                  if(invoiceObj[r.columnName] === from){
+                    if(r.to === this.nullMsg){
+                      invoiceObj[r.columnName] = "";
+                    }
+                    else {
+                      invoiceObj[r.columnName] = r.to;
+                    }
                   }
                 }
               }
@@ -2003,9 +2333,13 @@ export class AppComponent implements OnInit {
             if(row.checked){
               if(row.from !== undefined && row.to !== undefined){
                 Object.keys(invoiceObj).forEach(key => {
-                  if(invoiceObj[key] === row.from){
+                  let from = row.from;
+                  if(from === this.nullMsg){
+                    from = "";
+                  }
+                  if(invoiceObj[key] === from){
                     if(row.to === this.nullMsg){
-                      invoiceObj[key] = undefined;
+                      invoiceObj[key] = "";
                     }
                     else{
                       invoiceObj[key] = row.to;
@@ -2017,9 +2351,100 @@ export class AppComponent implements OnInit {
           });
           break;
         }
+        case 'D': {
+          this.displayReplacement.decimalPlace?.forEach((d: IDecimalPlaces) => {
+            if(d.checked){
+              if(
+                d.columnName !== undefined &&
+                d.decimalPlacesOption !== undefined &&
+                d.mathMethod !== undefined &&
+                d.calcDecimalPlaceDigit !== undefined
+              ){
+                Object.keys(invoiceObj).forEach(key => {
+                  if(key === d.columnName){
+                    let num = Number(invoiceObj[key]);
+                    if(!isNaN(num)){
+                      switch (d.mathMethod) {
+                        case this.floor: {
+                          if(d.calcDecimalPlaceDigit !== undefined){
+                            invoiceObj[key] = this.floorPrecised(num, this.countNumberOfDigits(d.calcDecimalPlaceDigit, '0'));
+                          }
+                          break;
+                        }
+                        case this.round: {
+                          if(d.calcDecimalPlaceDigit !== undefined){
+                            invoiceObj[key] = this.roundPrecised(num, this.countNumberOfDigits(d.calcDecimalPlaceDigit, '0'));
+                          }
+                          break;
+                        }
+                        case this.ceil: {
+                          if(d.calcDecimalPlaceDigit !== undefined){
+                            invoiceObj[key] = this.ceilPrecised(num, this.countNumberOfDigits(d.calcDecimalPlaceDigit, '0'));
+                          }
+                          break;
+                        }
+                      }
+                    }
+                  }
+                });
+              }
+            }
+          });
+        }
       }
     }
     return invoiceObj
+  }
+
+  controlAdvanceContainer(): void{
+    if(this.isUsingAdvance && this.replacements !== undefined){
+      this.resetReplacementChecked(this.replacements, true, false, false, false, false);
+      this.displayReplacement = undefined;
+    }
+    this.isUsingAdvance = !this.isUsingAdvance;
+    this.scrollToView(this.advanceArea);
+  }
+
+  finishAdvanceSetting(): void{
+    if(this.checkIfOneOfThemIsChecked()){
+      this.scrollToView(this.uploadArea);
+    }
+    else{
+      Swal.fire({
+        title: 'Are you sure you want to continue?',
+        text: "Since you didn't select any replace rules, the advance setting won't apply when you convert your file!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, continue!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Swal.fire({
+          //   didClose: () => window.scrollTo(0,0)
+          // })
+          setTimeout(()=> {
+            this.scrollToView(this.uploadArea);
+          }, 350);
+        }
+      })
+    }
+  }
+
+  scrollToColumnKeyCell(index: number): void{
+    this.scrollToView(this.columnKeyCells?.get(index));
+  }
+
+  scrollToReplaceKeyCell(index: number): void{
+    this.scrollToView(this.replaceKeyCells?.get(index));
+  }
+
+  scrollToReplaceAllCell(index: number): void{
+    this.scrollToView(this.replaceAllCells?.get(index));
+  }
+
+  scrollToDecimalPlaceCell(index: number): void{
+    this.scrollToView(this.decimalPlaceCells?.get(index));
   }
 
   protected addShakingAnimation(targetId: string): void {
@@ -2036,7 +2461,8 @@ export class AppComponent implements OnInit {
     isReplacementUndefined: boolean,
     isColumnNameUndefined: boolean,
     isReplaceNameUndefined: boolean,
-    isRowNameUndefined: boolean
+    isRowNameUndefined: boolean,
+    isDecimalPlaceUndefined: boolean
   ): void{
     list.forEach((item: IReplacement) => {
       if(isReplacementUndefined){
@@ -2056,6 +2482,11 @@ export class AppComponent implements OnInit {
         item.rowKey?.forEach((r: IReplaceName) => {
           r.checked = undefined;
         });
+      }
+      if(isDecimalPlaceUndefined){
+        item.decimalPlace?.forEach((d: IDecimalPlaces) => {
+          d.checked = undefined
+        })
       }
     });
   }
@@ -2099,6 +2530,13 @@ export class AppComponent implements OnInit {
             }
           }
         }
+        if(replacement.decimalPlace !== undefined && replacement.decimalPlace !== null){
+          for (const replacementElement of replacement.decimalPlace) {
+            if(replacementElement.id === id){
+              return false;
+            }
+          }
+        }
       }
     }
     return true;
@@ -2121,10 +2559,13 @@ export class AppComponent implements OnInit {
         row.isEditing = false;
         row.isJustCreated = false;
       });
+      r.decimalPlace?.forEach((d: IDecimalPlaces) => {
+        d.isEditing = false;
+        d.isJustCreated = false;
+      })
     });
     localStorage.setItem(this.storageReplaceName, JSON.stringify(replacements));
   }
-
 
   protected rearrangeJustCreated(replacements: IReplacement[], isCloned?: boolean): IReplacement[]{
     // let cloned: IReplacement[];
@@ -2146,6 +2587,7 @@ export class AppComponent implements OnInit {
         cloneReplacement.columnKey = [];
         cloneReplacement.replaceKey = [];
         cloneReplacement.rowKey = [];
+        cloneReplacement.decimalPlace = [];
         r.columnKey?.forEach((c: IColumnName, cIndex: number) => {
           if(!c.isJustCreated){
             cloneReplacement.columnKey?.push(Object.assign({}, c));
@@ -2161,21 +2603,76 @@ export class AppComponent implements OnInit {
             cloneReplacement.rowKey?.push(Object.assign({}, row));
           }
         });
+        r.decimalPlace?.forEach((d: IDecimalPlaces, dIndex: number) =>{
+          if(!d.isJustCreated){
+            cloneReplacement.decimalPlace?.push(Object.assign({}, d));
+          }
+        });
         result.push(cloneReplacement);
       }
     });
-    if(isCloned){
-      return result;
-    }
-    else{
+    if(!isCloned){
       this.replacements = result;
       if(replacementCheckedIndex !== -1){
         this.displayReplacement = this.replacements[replacementCheckedIndex];
       }
     }
-
     return result;
   }
+
+  protected calcDecimalPlace(item: IDecimalPlaces): void{
+    if(item.editDecimalPlacesOption !== undefined && item.editDecimalPlacesOption.trim() !== ''){
+      item.editDecimalPlacesOption = item.editDecimalPlacesOption.trim();
+      const reference = item.editDecimalPlacesOption.substring(item.editDecimalPlacesOption.indexOf('.')+1);
+      const zeroCharacters = reference.split('');
+      const thDecimalPlace = zeroCharacters.length;
+      item.calcDecimalPlaceDigit = 1;
+      const offset = 10;
+      for (let i = 0; i < thDecimalPlace; i++) {
+        item.calcDecimalPlaceDigit *= offset;
+      }
+    }
+  }
+
+  protected getDecimalPlaces(qty: number): string[]{
+    const list = [];
+    let tempPrefix = this.prefix;
+    for (let i = 0; i < qty; i++) {
+      list.push(tempPrefix);
+      tempPrefix += String(0);
+    }
+    return list;
+  }
+
+  protected countNumberOfDigits(num: number, targetDigit: string): number{
+    let char: string[] = String(num).split('');
+    let count = 0;
+    char.forEach((c: string) => {
+      if(c === targetDigit){
+        count++;
+      }
+    });
+    return count;
+  }
+
+  protected floorPrecised(num: number, precision: number): string {
+    let power = Math.pow(10, precision);
+    const temp = Math.floor(num * power) / power;
+    return temp.toFixed(precision);
+  }
+
+  protected roundPrecised(num: number, precision: number): string {
+    let power = Math.pow(10, precision);
+    const temp = Math.round((num + Number.EPSILON) * power) / power;
+    return temp.toFixed(precision);
+  }
+
+  protected ceilPrecised(num: number, precision: number): string {
+    let power = Math.pow(10, precision);
+    const temp = Math.ceil(num * power) / power;
+    return temp.toFixed(precision);
+  }
+
 
   protected save(event: any, item: IColumnName | IReplaceName | IRowName, index: number): void{
      if ("columnName" in item) {
@@ -2195,6 +2692,31 @@ export class AppComponent implements OnInit {
     this.Toast.fire({
       icon: 'success',
       title: 'Saved!'
+    });
+  }
+
+  protected decimalPlaceSave(event: any, item: IDecimalPlaces, index: number): void{
+    item.columnName = item.editColumnName;
+    item.editColumnName = undefined;
+    this.calcDecimalPlace(item);
+    item.decimalPlacesOption = item.editDecimalPlacesOption;
+    item.editDecimalPlacesOption = undefined;
+    item.mathMethod = item.editMathMethod;
+    item.editMathMethod = undefined;
+    item.isEditing = false;
+    item.isJustCreated = false;
+    this.addingOrderList();
+    this.saveReplacementInLocalStorage(true);
+    console.warn(item)
+    this.Toast.fire({
+      icon: 'success',
+      title: 'Saved!'
+    });
+  }
+
+  protected scrollToView(elementRef: ElementRef | undefined): void{
+    elementRef?.nativeElement.scrollIntoView({
+      behavior: 'smooth',
     });
   }
 }

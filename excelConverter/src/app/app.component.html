@@ -1,4 +1,4 @@
-<div #topOne class="whole-continaer">
+<div #topOne class="whole-container">
   <div class="excel-img-box">
     <img
       src="https://cdn.jsdelivr.net/gh/yuchilai/gccny_AP_Invoices_Converter@master/src/app/image/icons8-microsoft-excel-96.png"
@@ -111,7 +111,7 @@
       Edit
     </button>
   </div>
-  <div class="input-box">
+  <div #uploadArea class="input-box">
     <div class="control-headers-box">
       <div
         class="control-title"
@@ -253,6 +253,71 @@
           {{ name }}
         </div>
       </div> -->
+    </div>
+    <div *ngIf="displayReplacement !== undefined" class="advance-setting-show-box">
+      <div class="advance-setting-applied-title"> Advance Setting Applied: </div>
+      <div class="advance-setting-applied">
+        <div *ngFor="let item of displayReplacement?.columnKey; let i = index;" (click)="scrollToColumnKeyCell(i)" class="advance-applied-cell">
+          <span *ngIf="item.checked" class="custom-badge badge-pill badge-info">
+            <span *ngIf="item.from !== undefined" class="applied-from">
+              <strong class="applied-title"> From: </strong>
+              {{(item.from === nullMsg) ? nullForApplied : (item.from.length > 10) ? (item.from | slice:0:10) + '...' : item.from}}
+            </span>
+            <strong>&#x2192;</strong>
+            <span *ngIf="item.to !== undefined" class="applied-to">
+              <strong class="applied-title"> To: </strong>
+              {{(item.to === nullMsg) ? nullForApplied : (item.to.length > 10) ? (item.to | slice:0:10) + '...' : item.to}}
+            </span>
+          </span>
+        </div>
+        <div *ngFor="let item of displayReplacement?.replaceKey; let i = index;" (click)="scrollToReplaceKeyCell(i)" class="advance-applied-cell">
+          <span *ngIf="item.checked" class="custom-badge badge-pill badge-info">
+            <span *ngIf="item.columnName !== undefined" class="applied-column-name">
+              <strong class="applied-title"> Column Name: </strong>
+              {{(item.columnName === nullMsg) ? nullForApplied : (item.columnName.length > 10) ? (item.columnName | slice:0:10) + '...' : item.columnName}}
+            </span>
+            <span *ngIf="item.from !== undefined" class="applied-from">
+              <strong class="applied-title"> From: </strong>
+              {{(item.from === nullMsg) ? nullForApplied : (item.from.length > 10) ? (item.from | slice:0:10) + '...' : item.from}}
+            </span>
+            <strong>&#x2192;</strong>
+            <span *ngIf="item.to !== undefined" class="applied-to">
+              <strong class="applied-title"> To: </strong>
+              {{(item.to === nullMsg) ? nullForApplied : (item.to.length > 10) ? (item.to | slice:0:10) + '...' : item.to}}
+            </span>
+          </span>
+        </div>
+        <div *ngFor="let item of displayReplacement?.rowKey; let i = index;" (click)="scrollToReplaceAllCell(i)" class="advance-applied-cell">
+          <span *ngIf="item.checked" class="custom-badge badge-pill badge-info">
+            <span *ngIf="item.from !== undefined" class="applied-from">
+              <strong class="applied-title"> From: </strong>
+              {{(item.from === nullMsg) ? nullForApplied : (item.from.length > 10) ? (item.from | slice:0:10) + '...' : item.from}}
+            </span>
+            <strong>&#x2192;</strong>
+            <span *ngIf="item.to !== undefined" class="applied-to">
+              <strong class="applied-title"> To: </strong>
+              {{(item.to === nullMsg) ? nullForApplied : (item.to.length > 10) ? (item.to | slice:0:10) + '...' : item.to}}
+            </span>
+          </span>
+        </div>
+        <div *ngFor="let item of displayReplacement?.decimalPlace; let i = index;" (click)="scrollToDecimalPlaceCell(i)" class="advance-applied-cell">
+          <span *ngIf="item.checked" class="custom-badge badge-pill badge-info">
+            <span *ngIf="item.columnName !== undefined" class="applied-column-name">
+              <strong class="applied-title"> Column Name: </strong>
+              {{(item.columnName === nullMsg) ? nullForApplied : (item.columnName.length > 10) ? (item.columnName | slice:0:10) + '...' : item.columnName}}
+            </span>
+            <span>
+              <strong class="applied-title"> Decimal Places: </strong>
+              {{item.decimalPlacesOption}}
+            </span>
+            <span>
+              <strong class="applied-title"> Method: </strong>
+              {{item.mathMethod}}
+            </span>
+          </span>
+
+        </div>
+      </div>
     </div>
 
     <div class="mb-3">
@@ -522,6 +587,672 @@
       </div>
     </div>
   </div>
+  <div #advanceArea class="advance-wrapper">
+    <div *ngIf="!isUsingAdvance" class="advance-show-box">
+      <div (click)="controlAdvanceContainer()" class="advance-btn-down-icon">
+        <div class="advance-btn-title">
+          Advance Setting
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" fill="currentColor" class="bi bi-chevron-down" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+        </svg>
+      </div>
+    </div>
+    <div *ngIf="isUsingAdvance" class="advance-container">
+      <h1 class="advance-create-title"> Create or edit your replace rules </h1>
+      <div class="advance-setting-box">
+        <div class="advance-replacement-name-box">
+          <div *ngFor="let item of replacements; let i = index" class="advance-replacement-list-box">
+            <div class="advance-radio-group">
+              <div *ngIf="!item.isEditing" (click)="editReplacements($event, item)" class="advance-edit-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" id="replacement-bi-pencil-square" viewBox="0 0 16 16">
+                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                </svg>
+              </div>
+              <div *ngIf="item.isEditing" class="advance-editing-btn-box">
+                <div (click)="saveReplacementName($event, item, i)" class="advance-check-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" id="replacement-bi-check-lg" viewBox="0 0 16 16">
+                    <path d="M13.485 1.431a1.473 1.473 0 0 1 2.104 2.062l-7.84 9.801a1.473 1.473 0 0 1-2.12.04L.431 8.138a1.473 1.473 0 0 1 2.084-2.083l4.111 4.112 6.82-8.69a.486.486 0 0 1 .04-.045z"/>
+                  </svg>
+                </div>
+                <div (click)="cancelReplacement($event, item, i)" class="advance-x-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" id="replacement-bi-x-lg" viewBox="0 0 16 16">
+                    <path d="M1.293 1.293a1 1 0 0 1 1.414 0L8 6.586l5.293-5.293a1 1 0 1 1 1.414 1.414L9.414 8l5.293 5.293a1 1 0 0 1-1.414 1.414L8 9.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L6.586 8 1.293 2.707a1 1 0 0 1 0-1.414z"/>
+                  </svg>
+                </div>
+                <div (click)="deleteReplacement($event, item, i)" class="advance-trash-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" id="replacement-bi-trash-fill" viewBox="0 0 16 16">
+                    <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+                  </svg>
+                </div>
+              </div>
+              <input *ngIf="!item.isEditing" (click)="selectReplacement($event, item, i)" [checked]="item.checked" type="checkbox" class="advance-radio" id="advance-radio-btn{{i}}" autocomplete="off">
+              <label class="advance-label" for="advance-radio-btn{{i}}">
+                <span *ngIf="!item.isEditing" class="dont-break-out">{{ item.name }}</span>
+                <input *ngIf="item.isEditing" (keyup.enter)="saveReplacementName($event, item, i)" (keyup.escape)="cancelReplacement($event, item, i)" [(ngModel)]="item.editName" type="text" id="edit-name-input{{i}}" class="form-control">
+              </label>
+              <span class="advance-index">{{ i }}.</span>
+            </div>
+          </div>
+          <div class="advance-replacement-add-btn">
+            <div class="advance-radio-add-btn">
+              <input (click)="createReplacement()" type="checkbox" class="advance-radio" id="advance-radio-add-btn" autocomplete="off">
+              <label class="advance-add-label" for="advance-radio-add-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                  <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+                </svg>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div #advanceThreeChoices class="advance-display-child-move-box">
+          <div *ngIf="displayReplacement !== undefined" class="advance-display-child-box-wrapper">
+            <h1> Replace order: </h1>
+            <div *ngIf="displayReplacement.columnKey !== undefined || displayReplacement.replaceKey !== undefined || displayReplacement.rowKey !== undefined" class="advance-display-order-box">
+              <div cdkDropList cdkDropListOrientation="horizontal" class="advance-order-drop-area" (cdkDropListDropped)="dropOrder($event)">
+                <div *ngFor="let item of orderList; let i = index" class="advance-order-cell" cdkDrag>
+                  <div class="advance-custom-placeholder" *cdkDragPlaceholder></div>
+                  <span class="advance-order-title">{{ item }}</span>
+                </div>
+              </div>
+              <div *ngFor="let item of exchangeArrowBtnOfOrderList; let i = index; let last = last" class="order-exchange-icon-wrapper">
+                <div (click)="swapOrder(i)" class="order-exchange-icon{{item}}-{{i}}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-left-right" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/>
+                  </svg>
+                </div>
+              </div>
+              <!--            <div *ngIf="checkHowManyExchangeIcons() > 1" class="order-exchange-icon-wrapper">-->
+              <!--              <div *ngIf="checkHowManyExchangeIcons() === 2" (click)="swapOrder(0)" class="order-exchange-icon0">-->
+              <!--                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-left-right" viewBox="0 0 16 16">-->
+              <!--                  <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/>-->
+              <!--                </svg>-->
+              <!--              </div>-->
+              <!--              <div *ngIf="checkHowManyExchangeIcons() === 3" (click)="swapOrder(0)" class="order-exchange-icon1">-->
+              <!--                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-left-right" viewBox="0 0 16 16">-->
+              <!--                  <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/>-->
+              <!--                </svg>-->
+              <!--              </div>-->
+              <!--              <div *ngIf="checkHowManyExchangeIcons() === 3" (click)="swapOrder(1)" class="order-exchange-icon2">-->
+              <!--                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-left-right" viewBox="0 0 16 16">-->
+              <!--                  <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/>-->
+              <!--                </svg>-->
+              <!--              </div>-->
+              <!--            </div>-->
+            </div>
+            <div class="advance-display-child-box">
+              <div class="advance-columnKey">
+                <h1 class="advance-title noselect"> <Strong> A.</Strong> Headers replace </h1>
+                <div cdkDropList class="advance-columnKey-drop-area" (cdkDropListDropped)="dropColumnKeyOrder($event)">
+                  <div
+                    *ngFor="let item of displayReplacement.columnKey; let i = index"
+                    class="advance-columnKey-cell"
+                    id="advance-columnKey-cell{{i}}"
+                    cdkDrag
+                  >
+<!--                    (cdkDragStarted)="cdkDragStarted($event, i)"-->
+                    <!--                    [ngStyle]="{'min-height.px':height  }"-->
+<!--                    <div class="advance-custom-columnKey-placeholder" *cdkDragPlaceholder></div>-->
+                    <div #columnKeyCells class="advance-columnKey-radio-group">
+                      <div (click)="editColumnKey($event, item)" *ngIf="!item.isEditing" class="advance-columnKey-edit-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" id="columnKey-bi-pencil-square" viewBox="0 0 16 16">
+                          <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                          <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                        </svg>
+                      </div>
+                      <div *ngIf="item.isEditing" class="advance-columnKey-editing-btn-box">
+                        <div (click)="saveColumnKey($event, item, i)" class="advance-columnKey-check-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" id="columnKey-bi-check-lg" viewBox="0 0 16 16">
+                            <path d="M13.485 1.431a1.473 1.473 0 0 1 2.104 2.062l-7.84 9.801a1.473 1.473 0 0 1-2.12.04L.431 8.138a1.473 1.473 0 0 1 2.084-2.083l4.111 4.112 6.82-8.69a.486.486 0 0 1 .04-.045z"/>
+                          </svg>
+                        </div>
+                        <div (click)="cancelColumnKey($event, item, i)" class="advance-columnKey-x-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" id="columnKey-bi-x-lg" viewBox="0 0 16 16">
+                            <path d="M1.293 1.293a1 1 0 0 1 1.414 0L8 6.586l5.293-5.293a1 1 0 1 1 1.414 1.414L9.414 8l5.293 5.293a1 1 0 0 1-1.414 1.414L8 9.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L6.586 8 1.293 2.707a1 1 0 0 1 0-1.414z"/>
+                          </svg>
+                        </div>
+                        <div (click)="deleteColumnKey($event, item, i)" class="advance-columnKey-trash-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" id="columnKey-bi-trash-fill" viewBox="0 0 16 16">
+                            <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <input *ngIf="!item.isEditing" (click)="selectColumnKey($event, item, i)" [checked]="item.checked" type="checkbox" class="advance-columnKey-radio" id="advance-columnKey-radio-btn{{i}}" autocomplete="off">
+                      <label [style]="item.isEditing ? editingCellStyle : null" class="advance-columnKey-label" id="advance-columnKey-label{{i}}" for="advance-columnKey-radio-btn{{i}}">
+                      <span *ngIf="!item.isEditing" class="non-edit-box">
+                        <span class="c-name-box">
+                        <span class="c-title-label"> Column name: </span>
+                        <span *ngIf="item.from !== nullMsg" class="dont-break-out">{{ item.from }}</span>
+                        <span *ngIf="item.from === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                      </span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-down" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
+                        </svg>
+                        <span *ngIf="item.to !== nullMsg" class="dont-break-out">{{ item.to }}</span>
+                        <span *ngIf="item.to === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                      </span>
+                      <span *ngIf="item.isEditing" class="editing-box">
+                        <span class="editing-input-label">
+                        <label class="from-label noselect" for="edit-columnKey-from-input{{i}}"> From : </label>
+                        <input
+                          *ngIf="item.editFrom !== nullMsg"
+                          (keyup.enter)="saveColumnKey($event, item, i)"
+                          (keyup.escape)="cancelColumnKey($event, item, i)"
+                          [(ngModel)]="item.editFrom"
+                          type="text"
+                          id="edit-columnKey-from-input{{i}}"
+                          class="form-control"
+                        >
+                        <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                        <span class="exchange-btn-box">
+                          <span (click)="switchFromAndTo($event, item, i)" class="exchange-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-down-up" viewBox="0 0 16 16">
+                              <path fill-rule="evenodd" d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z"/>
+                            </svg>
+                          </span>
+                        </span>
+                        <label class="to-label noselect" for="edit-columnKey-to-input{{i}}"> To : </label>
+                        <input
+                          *ngIf="item.editTo !== nullMsg"
+                          (keyup.enter)="saveColumnKey($event, item, i)"
+                          (keyup.escape)="cancelColumnKey($event, item, i)"
+                          [(ngModel)]="item.editTo"
+                          type="text"
+                          id="edit-columnKey-to-input{{i}}"
+                          class="form-control"
+                        >
+                        <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                      </span>
+                        <span class="null-box-btn">
+                        <input
+                          (click)="setFromNull($event, item, i)"
+                          [checked]="item.editFrom === nullMsg"
+                          type="radio"
+                          class="btn-check"
+                          name="column-key-null"
+                          id="from-null{{i}}"
+                          autocomplete="off"
+                        >
+                        <label [style]="radioLeftNullBtnStyle" class="btn btn-outline-warning" for="from-null{{i}}">From</label>
+                        <input
+                          (click)="resetNull($event, item, i)"
+                          [checked]="item.editFrom !== nullMsg && item.editTo !== nullMsg"
+                          type="radio"
+                          class="btn-check"
+                          name="column-key-null"
+                          id="na{{i}}"
+                          autocomplete="off"
+                        >
+                        <label [style]="radioMidNullBtnStyle" class="btn btn-outline-secondary" for="na{{i}}">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"/>
+                          </svg>
+                          Null
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
+                          </svg>
+                        </label>
+                        <input
+                          (click)="setToNull($event, item, i)"
+                          [checked]="item.editTo === nullMsg"
+                          type="radio"
+                          class="btn-check"
+                          name="column-key-null"
+                          id="to-null{{i}}"
+                          autocomplete="off"
+                        >
+                        <label [style]="radioRightNullBtnStyle" class="btn btn-outline-warning" for="to-null{{i}}">To</label>
+                      </span>
+                      </span>
+                      </label>
+                      <span [style]="item.isEditing ? cellBorderHoverColor : null" class="advance-columnKey-index">{{ i }}.</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="advance-replacement-add-btn">
+                  <div class="advance-radio-add-btn">
+                    <input (click)="createColumnKey()" type="checkbox" class="advance-radio" id="advance-radio-add-columnKey-btn" autocomplete="off">
+                    <label class="advance-add-label" for="advance-radio-add-columnKey-btn">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                        <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+                      </svg>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="advance-replaceKey">
+                <h1 class="advance-title noselect"> <Strong> B.</Strong> Rows Replace in a specific column </h1>
+                <div cdkDropList class="advance-replaceKey-drop-area" (cdkDropListDropped)="dropReplaceKeyOrder($event)">
+                  <div
+                    *ngFor="let item of displayReplacement.replaceKey; let i = index"
+                    class="advance-replaceKey-cell"
+                    cdkDrag
+                  >
+                    <div #replaceKeyCells class="advance-replaceKey-radio-group">
+                      <div (click)="editReplaceKey($event, item)" *ngIf="!item.isEditing" class="advance-replaceKey-edit-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" id="columnKey-bi-pencil-square" viewBox="0 0 16 16">
+                          <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                          <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                        </svg>
+                      </div>
+                      <div *ngIf="item.isEditing" class="advance-replaceKey-editing-btn-box">
+                        <div (click)="saveReplaceKey($event, item, i)" class="advance-columnKey-check-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" id="columnKey-bi-check-lg" viewBox="0 0 16 16">
+                            <path d="M13.485 1.431a1.473 1.473 0 0 1 2.104 2.062l-7.84 9.801a1.473 1.473 0 0 1-2.12.04L.431 8.138a1.473 1.473 0 0 1 2.084-2.083l4.111 4.112 6.82-8.69a.486.486 0 0 1 .04-.045z"/>
+                          </svg>
+                        </div>
+                        <div (click)="cancelReplaceKey($event, item, i)" class="advance-replaceKey-x-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" id="columnKey-bi-x-lg" viewBox="0 0 16 16">
+                            <path d="M1.293 1.293a1 1 0 0 1 1.414 0L8 6.586l5.293-5.293a1 1 0 1 1 1.414 1.414L9.414 8l5.293 5.293a1 1 0 0 1-1.414 1.414L8 9.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L6.586 8 1.293 2.707a1 1 0 0 1 0-1.414z"/>
+                          </svg>
+                        </div>
+                        <div (click)="deleteReplaceKey($event, item, i)" class="advance-replaceKey-trash-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" id="columnKey-bi-trash-fill" viewBox="0 0 16 16">
+                            <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <input *ngIf="!item.isEditing" (click)="selectReplaceKey($event, item, i)" [checked]="item.checked" type="checkbox" class="advance-replaceKey-radio" id="advance-replaceKey-radio-btn{{i}}" autocomplete="off">
+                      <label [style]="item.isEditing ? editingCellStyle : null" class="advance-replaceKey-label" for="advance-replaceKey-radio-btn{{i}}">
+                  <span *ngIf="!item.isEditing" class="non-edit-box">
+                    <span class="c-name-box">
+                      <span class="c-title-label"> Target column name: </span>
+                      <span class="dont-break-out">{{ item.columnName }}</span>
+                    </span>
+                    <span class="r-name-box">
+                      <span class="r-title-label"> Row name: </span>
+                      <span *ngIf="item.from !== nullMsg" class="dont-break-out">{{ item.from }}</span>
+                      <span *ngIf="item.from === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-down" viewBox="0 0 16 16">
+                      <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
+                    </svg>
+                    <span *ngIf="item.to !== nullMsg" class="dont-break-out">{{ item.to }}</span>
+                    <span *ngIf="item.to === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                  </span>
+                        <span *ngIf="item.isEditing" class="editing-box">
+                    <span class="editing-input-label">
+                      <label for="edit-replaceKey-columnName-input{{i}}" class="target-name-label noselect"> Column Name: </label>
+                      <input
+                        (keyup.enter)="saveReplaceKey($event, item, i)"
+                        (keyup.escape)="cancelReplaceKey($event, item, i)"
+                        [(ngModel)]="item.editColumnName"
+                        type="text"
+                        id="edit-replaceKey-columnName-input{{i}}"
+                        class="form-control"
+                      >
+                      <label class="from-label noselect m-t-10" for="edit-replaceKey-from-input{{i}}"> From : </label>
+                      <input
+                        *ngIf="item.editFrom !== nullMsg"
+                        (keyup.enter)="saveReplaceKey($event, item, i)"
+                        (keyup.escape)="cancelReplaceKey($event, item, i)"
+                        [(ngModel)]="item.editFrom"
+                        type="text"
+                        id="edit-replaceKey-from-input{{i}}"
+                        class="form-control"
+                      >
+                      <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                      <span class="exchange-btn-box">
+                        <span (click)="switchFromAndTo($event, item, i)" class="exchange-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-down-up" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z"/>
+                          </svg>
+                        </span>
+                      </span>
+                      <label class="to-label noselect" for="edit-replaceKey-to-input{{i}}"> To : </label>
+                      <input
+                        *ngIf="item.editTo !== nullMsg"
+                        (keyup.enter)="saveReplaceKey($event, item, i)"
+                        (keyup.escape)="cancelReplaceKey($event, item, i)"
+                        [(ngModel)]="item.editTo"
+                        type="text"
+                        id="edit-replaceKey-to-input{{i}}"
+                        class="form-control"
+                      >
+                      <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                    </span>
+                    <span class="null-box-btn">
+                      <input
+                        (click)="setFromNull($event, item, i)"
+                        [checked]="item.editFrom === nullMsg"
+                        type="radio"
+                        class="btn-check"
+                        name="replace-key-null"
+                        id="from-null-replaceKey{{i}}"
+                        autocomplete="off"
+                      >
+                      <label [style]="radioLeftNullBtnStyle" class="btn btn-outline-warning" for="from-null-replaceKey{{i}}">From</label>
+                      <input
+                        (click)="resetNull($event, item, i)"
+                        [checked]="item.editFrom !== nullMsg && item.editTo !== nullMsg"
+                        type="radio"
+                        class="btn-check"
+                        name="replace-key-null"
+                        id="na-replaceKey{{i}}"
+                        autocomplete="off"
+                      >
+                      <label [style]="radioMidNullBtnStyle" class="btn btn-outline-secondary" for="na-replaceKey{{i}}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"/>
+                        </svg>
+                        Null
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
+                        </svg>
+                      </label>
+                      <input
+                        (click)="setToNull($event, item, i)"
+                        [checked]="item.editTo === nullMsg"
+                        type="radio"
+                        class="btn-check"
+                        name="replace-key-null"
+                        id="to-null-replaceKey{{i}}"
+                        autocomplete="off"
+                      >
+                      <label [style]="radioRightNullBtnStyle" class="btn btn-outline-warning" for="to-null-replaceKey{{i}}">To</label>
+                    </span>
+                  </span>
+                      </label>
+                      <span [style]="item.isEditing ? cellBorderHoverColor : null" class="advance-replaceKey-index">{{ i }}.</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="advance-replacement-add-btn">
+                  <div class="advance-radio-add-btn">
+                    <input (click)="createReplaceKey()" type="checkbox" class="advance-radio" id="advance-radio-add-replaceKey-btn" autocomplete="off">
+                    <label class="advance-add-label" for="advance-radio-add-replaceKey-btn">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                        <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+                      </svg>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="advance-replaceAll">
+                <h1 class="advance-title noselect"> <Strong> C.</Strong> Rows replace </h1>
+                <div cdkDropList class="advance-replaceAll-drop-area" (cdkDropListDropped)="dropReplaceAllOrder($event)">
+                  <div
+                    *ngFor="let item of displayReplacement.rowKey; let i = index"
+                    class="advance-rowKey-cell"
+                    cdkDrag
+                  >
+                    <div #replaceAllCells class="advance-rowKey-radio-group">
+                      <div *ngIf="!item.isEditing" class="advance-rowKey-edit-btn">
+                        <svg (click)="editRowKey($event, item)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" id="columnKey-bi-pencil-square" viewBox="0 0 16 16">
+                          <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                          <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                        </svg>
+                      </div>
+                      <div *ngIf="item.isEditing" class="advance-rowKey-editing-btn-box">
+                        <div (click)="saveRowKey($event, item, i)" class="advance-columnKey-check-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" id="columnKey-bi-check-lg" viewBox="0 0 16 16">
+                            <path d="M13.485 1.431a1.473 1.473 0 0 1 2.104 2.062l-7.84 9.801a1.473 1.473 0 0 1-2.12.04L.431 8.138a1.473 1.473 0 0 1 2.084-2.083l4.111 4.112 6.82-8.69a.486.486 0 0 1 .04-.045z"/>
+                          </svg>
+                        </div>
+                        <div (click)="cancelRowKey($event, item, i)" class="advance-rowKey-x-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" id="columnKey-bi-x-lg" viewBox="0 0 16 16">
+                            <path d="M1.293 1.293a1 1 0 0 1 1.414 0L8 6.586l5.293-5.293a1 1 0 1 1 1.414 1.414L9.414 8l5.293 5.293a1 1 0 0 1-1.414 1.414L8 9.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L6.586 8 1.293 2.707a1 1 0 0 1 0-1.414z"/>
+                          </svg>
+                        </div>
+                        <div (click)="deleteRowKey($event, item, i)" class="advance-rowKey-trash-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" id="columnKey-bi-trash-fill" viewBox="0 0 16 16">
+                            <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <input *ngIf="!item.isEditing" (click)="selectRowKey($event, item, i)" [checked]="item.checked" type="checkbox" class="advance-rowKey-radio" id="advance-rowKey-radio-btn{{i}}" autocomplete="off">
+                      <label [style]="item.isEditing ? editingCellStyle : null" class="advance-rowKey-label" for="advance-rowKey-radio-btn{{i}}">
+                  <span *ngIf="!item.isEditing" class="non-edit-box">
+                    <span class="r-name-box">
+                      <span class="r-title-label"> Row name: </span>
+                      <span *ngIf="item.from !== nullMsg" class="dont-break-out">{{ item.from }}</span>
+                      <span *ngIf="item.from === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-down" viewBox="0 0 16 16">
+                      <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
+                    </svg>
+                    <span *ngIf="item.to !== nullMsg" class="dont-break-out">{{ item.to }}</span>
+                    <span *ngIf="item.to === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                  </span>
+                        <span *ngIf="item.isEditing" class="editing-box">
+                    <span class="editing-input-label">
+                      <label class="from-label noselect" for="edit-rowKey-from-input{{i}}"> From : </label>
+                      <input
+                        *ngIf="item.editFrom !== nullMsg"
+                        (keyup.enter)="saveRowKey($event, item, i)"
+                        (keyup.escape)="cancelRowKey($event, item, i)"
+                        [(ngModel)]="item.editFrom"
+                        type="text"
+                        id="edit-rowKey-from-input{{i}}"
+                        class="form-control"
+                      >
+                      <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                      <span class="exchange-btn-box">
+                        <span (click)="switchFromAndTo($event, item, i)" class="exchange-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-down-up" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z"/>
+                          </svg>
+                        </span>
+                      </span>
+                      <label class="to-label noselect" for="edit-rowKey-to-input{{i}}"> To : </label>
+                      <input
+                        *ngIf="item.editTo !== nullMsg"
+                        (keyup.enter)="saveRowKey($event, item, i)"
+                        (keyup.escape)="cancelRowKey($event, item, i)"
+                        [(ngModel)]="item.editTo"
+                        type="text"
+                        id="edit-rowKey-to-input{{i}}"
+                        class="form-control"
+                      >
+                      <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                    </span>
+                    <span class="null-box-btn">
+                      <input
+                        (click)="setFromNull($event, item, i)"
+                        [checked]="item.editFrom === nullMsg"
+                        type="radio"
+                        class="btn-check"
+                        name="row-key-null"
+                        id="from-null-rowKey{{i}}"
+                        autocomplete="off"
+                      >
+                      <label [style]="radioLeftNullBtnStyle" class="btn btn-outline-warning" for="from-null-rowKey{{i}}">From</label>
+                      <input
+                        (click)="resetNull($event, item, i)"
+                        [checked]="item.editFrom !== nullMsg && item.editTo !== nullMsg"
+                        type="radio"
+                        class="btn-check"
+                        name="row-key-null"
+                        id="na-rowKey{{i}}"
+                        autocomplete="off"
+                      >
+                      <label [style]="radioMidNullBtnStyle" class="btn btn-outline-secondary" for="na-rowKey{{i}}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"/>
+                        </svg>
+                        Null
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
+                        </svg>
+                      </label>
+                      <input
+                        (click)="setToNull($event, item, i)"
+                        [checked]="item.editTo === nullMsg"
+                        type="radio"
+                        class="btn-check"
+                        name="row-key-null"
+                        id="to-null-rowKey{{i}}"
+                        autocomplete="off"
+                      >
+                      <label [style]="radioRightNullBtnStyle" class="btn btn-outline-warning" for="to-null-rowKey{{i}}">To</label>
+                    </span>
+                  </span>
+                      </label>
+                      <span [style]="item.isEditing ? cellBorderHoverColor : null" class="advance-rowKey-index">{{ i }}.</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="advance-replacement-add-btn">
+                  <div class="advance-radio-add-btn">
+                    <input (click)="createRowKey()" type="checkbox" class="advance-radio" id="advance-radio-add-rowKey-btn" autocomplete="off">
+                    <label class="advance-add-label" for="advance-radio-add-rowKey-btn">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                        <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+                      </svg>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="advance-decimalPlace">
+                <h1 class="advance-title noselect"> <Strong> D.</Strong> Math: Floor, Round, Ceil </h1>
+                <div cdkDropList class="advance-decimalPlace-drop-area" (cdkDropListDropped)="dropDecimalPlaceOrder($event)">
+                  <div
+                    *ngFor="let item of displayReplacement.decimalPlace; let i = index"
+                    class="advance-decimalPlace-cell"
+                    cdkDrag
+                  >
+                    <div #decimalPlaceCells class="advance-decimalPlace-radio-group">
+                      <div *ngIf="!item.isEditing" class="advance-decimalPlace-edit-btn">
+                        <svg (click)="editDecimalPlace($event, item)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" id="columnKey-bi-pencil-square" viewBox="0 0 16 16">
+                          <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                          <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                        </svg>
+                      </div>
+                      <div *ngIf="item.isEditing" class="advance-decimalPlace-editing-btn-box">
+                        <div (click)="saveDecimalPlace($event, item, i)" class="advance-decimalPlace-check-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" id="decimalPlace-bi-check-lg" viewBox="0 0 16 16">
+                            <path d="M13.485 1.431a1.473 1.473 0 0 1 2.104 2.062l-7.84 9.801a1.473 1.473 0 0 1-2.12.04L.431 8.138a1.473 1.473 0 0 1 2.084-2.083l4.111 4.112 6.82-8.69a.486.486 0 0 1 .04-.045z"/>
+                          </svg>
+                        </div>
+                        <div (click)="cancelDecimalPlace($event, item, i)" class="advance-decimalPlace-x-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" id="decimalPlace-bi-x-lg" viewBox="0 0 16 16">
+                            <path d="M1.293 1.293a1 1 0 0 1 1.414 0L8 6.586l5.293-5.293a1 1 0 1 1 1.414 1.414L9.414 8l5.293 5.293a1 1 0 0 1-1.414 1.414L8 9.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L6.586 8 1.293 2.707a1 1 0 0 1 0-1.414z"/>
+                          </svg>
+                        </div>
+                        <div (click)="deleteDecimalPlace($event, item, i)" class="advance-decimalPlace-trash-btn">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" id="decimalPlace-bi-trash-fill" viewBox="0 0 16 16">
+                            <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <input *ngIf="!item.isEditing" (click)="selectDecimalPlace($event, item, i)" [checked]="item.checked" type="checkbox" class="advance-decimalPlace-radio" id="advance-decimalPlace-radio-btn{{i}}" autocomplete="off">
+                      <label [style]="item.isEditing ? editingCellStyle : null" class="advance-decimalPlace-label" for="advance-decimalPlace-radio-btn{{i}}">
+                  <span *ngIf="!item.isEditing" class="non-edit-box">
+                    <span class="c-name-box">
+                      <span class="c-title-label"> Target column name: </span>
+                      <span class="dont-break-out">{{ item.columnName }}</span>
+                    </span>
+                    <span class="d-name-box">
+                      <span class="d-title-label"> Decimal places: </span>
+                      <span class="dont-break-out">{{ item.decimalPlacesOption }}</span>
+                    </span>
+                    <span class="m-name-box">
+                      <span class="d-title-label"> Math method: </span>
+                      <span class="dont-break-out">{{ item.mathMethod }}</span>
+                    </span>
+                  </span>
+                        <span *ngIf="item.isEditing" class="editing-box">
+                    <span class="editing-input-label">
+                      <label for="edit-decimalPlace-columnName-input{{i}}" class="target-name-label noselect"> Column Name: </label>
+                      <input
+                        (keyup.enter)="saveDecimalPlace($event, item, i)"
+                        (keyup.escape)="cancelDecimalPlace($event, item, i)"
+                        [(ngModel)]="item.editColumnName"
+                        type="text"
+                        id="edit-decimalPlace-columnName-input{{i}}"
+                        class="form-control"
+                      >
+                      <label class="decimalPlace-label m-t-10 noselect" for="edit-decimalPlace-point-input{{i}}"> Decimal places : </label>
+                      <span class="decimalPlace-label-box" id="edit-decimalPlace-point-input{{i}}">
+                        <span *ngFor="let d of item.decimalPlacesOptionList; let j = index" class="decimalPlace-label">
+                          <input
+                            [value]="d"
+                            [(ngModel)]="item.editDecimalPlacesOption"
+                            type="radio" class="btn-check"
+                            name="decimalPlace-checkbox-input{{i}}"
+                            id="btn-decimalPlace-outlined{{i}}-{{j}}"
+                            autocomplete="off"
+                          >
+                          <label
+                            class="btn btn-outline-primary"
+                            for="btn-decimalPlace-outlined{{i}}-{{j}}"
+                          >
+                            {{d}}
+                          </label>
+                        </span>
+                        <span class="decimalPlace-add-label-box">
+                          <button (click)="addDecimalPlacesToList($event, item, i);" type="button" class="btn btn-outline-success">Add</button>
+                          <button (click)="resetDecimalPlacesList($event, item, i);" type="button" class="btn btn-outline-danger">Reset</button>
+                        </span>
+                      </span>
+                      <label class="mathMethod-label m-t-10 noselect" for="edit-decimalPlace-mathMethod-input{{i}}"> Math method : </label>
+                      <span class="decimalPlace-mathMethod-label-box" id="edit-decimalPlace-mathMethod-input{{i}}">
+                        <span *ngFor="let m of defaultMathMethodOptions; let j = index" class="decimalPlace-mathMethod-label">
+                          <input
+                            [value]="m"
+                            [(ngModel)]="item.editMathMethod"
+                            type="radio"
+                            class="btn-check"
+                            name="decimalPlace-mathMethod-checkbox-input{{i}}"
+                            id="btn-decimalPlace-mathMethod-outlined{{i}}-{{j}}"
+                            autocomplete="off"
+                          >
+                          <label
+                            class="btn btn-outline-primary"
+                            for="btn-decimalPlace-mathMethod-outlined{{i}}-{{j}}"
+                          >
+                            {{m}}
+                          </label>
+                        </span>
+                      </span>
+                    </span>
+                  </span>
+                      </label>
+                      <span [style]="item.isEditing ? cellBorderHoverColor : null" class="advance-decimalPlace-index">{{ i }}.</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="advance-replacement-add-btn">
+                  <div class="advance-radio-add-btn">
+                    <input (click)="createDecimalPlace()" type="checkbox" class="advance-radio" id="advance-radio-add-decimalPlace-btn" autocomplete="off">
+                    <label class="advance-add-label" for="advance-radio-add-decimalPlace-btn">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                        <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+                      </svg>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pre-load-pick-box">
+        </div>
+      </div>
+      <div *ngIf="displayReplacement !== undefined" class="finish-btn">
+        <button (click)="finishAdvanceSetting()" type="button" class="btn btn-outline-success d-grid gap-2 col-6 mx-auto">Finish</button>
+      </div>
+      <div class="advance-btn-up-icon-box">
+        <div (click)="controlAdvanceContainer()" class="advance-btn-up-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" fill="currentColor" class="bi bi-chevron-up" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/>
+          </svg>
+          <div class="close-advance-title">
+            Close & remove advance setting
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="reset-everything-box">
+    <h1>Danger Zone</h1>
+    <div class="reset-btn-box">
+      <div class="d-grid gap-2 col-6 mx-auto">
+        <button id="reset-btn" (click)="resetToDefault()" class="btn btn-primary" type="button">Reset everything to default</button>
+      </div>
+    </div>
+  </div>
   <div class="create-list-container">
     <div (click)="showCreatingBtn()" class="create-icon">
       <div *ngIf="isCreatingBtnAppeared" class="file-icon-box">
@@ -578,512 +1309,10 @@
       </div>
     </div>
   </div>
-  <div class="advance-show-box">
-    <div class="advance-btn-down-icon">
-      <div class="advance-btn-title">
-        Advance Setting
-      </div>
-      <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" fill="currentColor" class="bi bi-chevron-down" viewBox="0 0 16 16">
-        <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-      </svg>
-    </div>
-  </div>
-  <div class="advance-container">
-    <h1 class="advance-create-title"> Create or edit your replace rules </h1>
-    <div class="advance-setting-box">
-      <div class="advance-replacement-name-box">
-        <div *ngFor="let item of replacements; let i = index" class="advance-replacement-list-box">
-          <div class="advance-radio-group">
-            <div *ngIf="!item.isEditing" (click)="editReplacements($event, item)" class="advance-edit-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" id="replacement-bi-pencil-square" viewBox="0 0 16 16">
-                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-              </svg>
-            </div>
-            <div *ngIf="item.isEditing" class="advance-editing-btn-box">
-              <div (click)="saveReplacementName($event, item, i)" class="advance-check-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" id="replacement-bi-check-lg" viewBox="0 0 16 16">
-                  <path d="M13.485 1.431a1.473 1.473 0 0 1 2.104 2.062l-7.84 9.801a1.473 1.473 0 0 1-2.12.04L.431 8.138a1.473 1.473 0 0 1 2.084-2.083l4.111 4.112 6.82-8.69a.486.486 0 0 1 .04-.045z"/>
-                </svg>
-              </div>
-              <div (click)="cancelReplacement($event, item, i)" class="advance-x-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" id="replacement-bi-x-lg" viewBox="0 0 16 16">
-                  <path d="M1.293 1.293a1 1 0 0 1 1.414 0L8 6.586l5.293-5.293a1 1 0 1 1 1.414 1.414L9.414 8l5.293 5.293a1 1 0 0 1-1.414 1.414L8 9.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L6.586 8 1.293 2.707a1 1 0 0 1 0-1.414z"/>
-                </svg>
-              </div>
-              <div (click)="deleteReplacement($event, item, i)" class="advance-trash-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" id="replacement-bi-trash-fill" viewBox="0 0 16 16">
-                  <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
-                </svg>
-              </div>
-            </div>
-            <input *ngIf="!item.isEditing" (click)="selectReplacement($event, item, i)" [checked]="item.checked" type="checkbox" class="advance-radio" id="advance-radio-btn{{i}}" autocomplete="off">
-            <label class="advance-label" for="advance-radio-btn{{i}}">
-              <span *ngIf="!item.isEditing" class="dont-break-out">{{ item.name }}</span>
-              <input *ngIf="item.isEditing" (keyup.enter)="saveReplacementName($event, item, i)" (keyup.escape)="cancelReplacement($event, item, i)" [(ngModel)]="item.editName" type="text" id="edit-name-input{{i}}" class="form-control">
-            </label>
-            <span class="advance-index">{{ i }}.</span>
-          </div>
-        </div>
-        <div class="advance-replacement-add-btn">
-          <div class="advance-radio-add-btn">
-            <input (click)="createReplacement()" type="checkbox" class="advance-radio" id="advance-radio-add-btn" autocomplete="off">
-            <label class="advance-add-label" for="advance-radio-add-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-                <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
-              </svg>
-            </label>
-          </div>
-        </div>
-      </div>
-      <div #advanceThreeChoices class="advance-display-child-move-box">
-        <div *ngIf="displayReplacement !== undefined" class="advance-display-child-box-wrapper">
-          <h1> Replace order: </h1>
-          <div *ngIf="displayReplacement.columnKey !== undefined || displayReplacement.replaceKey !== undefined || displayReplacement.rowKey !== undefined" class="advance-display-order-box">
-            <div cdkDropList cdkDropListOrientation="horizontal" class="advance-order-drop-area" (cdkDropListDropped)="dropOrder($event)">
-              <div *ngFor="let item of orderList; let i = index" class="advance-order-cell" cdkDrag>
-                <div class="advance-custom-placeholder" *cdkDragPlaceholder></div>
-                <span class="advance-order-title">{{ item }}</span>
-              </div>
-            </div>
-            <div *ngIf="checkHowManyExchangeIcons() > 1" class="order-exchange-icon-wrapper">
-              <div *ngIf="checkHowManyExchangeIcons() === 2" (click)="swapOrder(true)" class="order-exchange-icon0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-left-right" viewBox="0 0 16 16">
-                  <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/>
-                </svg>
-              </div>
-              <div *ngIf="checkHowManyExchangeIcons() === 3" (click)="swapOrder(true)" class="order-exchange-icon1">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-left-right" viewBox="0 0 16 16">
-                  <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/>
-                </svg>
-              </div>
-              <div *ngIf="checkHowManyExchangeIcons() === 3" (click)="swapOrder(false)" class="order-exchange-icon2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-left-right" viewBox="0 0 16 16">
-                  <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div class="advance-display-child-box">
-            <div class="advance-columnKey">
-              <h1 class="advance-title noselect"> <Strong> A.</Strong> Headers replace </h1>
-              <div *ngFor="let item of displayReplacement.columnKey; let i = index" class="advance-columnKey-cell">
-                <div class="advance-columnKey-radio-group">
-                  <div (click)="editColumnKey($event, item)" *ngIf="!item.isEditing" class="advance-columnKey-edit-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" id="columnKey-bi-pencil-square" viewBox="0 0 16 16">
-                      <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                      <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-                    </svg>
-                  </div>
-                  <div *ngIf="item.isEditing" class="advance-columnKey-editing-btn-box">
-                    <div (click)="saveColumnKey($event, item, i)" class="advance-columnKey-check-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" id="columnKey-bi-check-lg" viewBox="0 0 16 16">
-                        <path d="M13.485 1.431a1.473 1.473 0 0 1 2.104 2.062l-7.84 9.801a1.473 1.473 0 0 1-2.12.04L.431 8.138a1.473 1.473 0 0 1 2.084-2.083l4.111 4.112 6.82-8.69a.486.486 0 0 1 .04-.045z"/>
-                      </svg>
-                    </div>
-                    <div (click)="cancelColumnKey($event, item, i)" class="advance-columnKey-x-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" id="columnKey-bi-x-lg" viewBox="0 0 16 16">
-                        <path d="M1.293 1.293a1 1 0 0 1 1.414 0L8 6.586l5.293-5.293a1 1 0 1 1 1.414 1.414L9.414 8l5.293 5.293a1 1 0 0 1-1.414 1.414L8 9.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L6.586 8 1.293 2.707a1 1 0 0 1 0-1.414z"/>
-                      </svg>
-                    </div>
-                    <div (click)="deleteColumnKey($event, item, i)" class="advance-columnKey-trash-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" id="columnKey-bi-trash-fill" viewBox="0 0 16 16">
-                        <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <input *ngIf="!item.isEditing" (click)="selectColumnKey($event, item, i)" [checked]="item.checked" type="checkbox" class="advance-columnKey-radio" id="advance-columnKey-radio-btn{{i}}" autocomplete="off">
-                  <label [style]="item.isEditing ? editingCellStyle : null" class="advance-columnKey-label" for="advance-columnKey-radio-btn{{i}}">
-                  <span *ngIf="!item.isEditing" class="non-edit-box">
-                    <span class="c-name-box">
-                      <span class="c-title-label"> Column name: </span>
-                      <span *ngIf="item.from !== nullMsg" class="dont-break-out">{{ item.from }}</span>
-                      <span *ngIf="item.from === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                    </span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-down" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
-                    </svg>
-                    <span *ngIf="item.to !== nullMsg" class="dont-break-out">{{ item.to }}</span>
-                    <span *ngIf="item.to === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                  </span>
-                    <span *ngIf="item.isEditing" class="editing-box">
-                    <span class="editing-input-label">
-                      <label class="from-label noselect" for="edit-columnKey-from-input{{i}}"> From : </label>
-                      <input
-                        *ngIf="item.editFrom !== nullMsg"
-                        (keyup.enter)="saveColumnKey($event, item, i)"
-                        (keyup.escape)="cancelColumnKey($event, item, i)"
-                        [(ngModel)]="item.editFrom"
-                        type="text"
-                        id="edit-columnKey-from-input{{i}}"
-                        class="form-control"
-                      >
-                      <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                      <span class="exchange-btn-box">
-                        <span (click)="switchFromAndTo($event, item, i)" class="exchange-btn">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-down-up" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z"/>
-                          </svg>
-                        </span>
-                      </span>
-                      <label class="to-label noselect" for="edit-columnKey-to-input{{i}}"> To : </label>
-                      <input
-                        *ngIf="item.editTo !== nullMsg"
-                        (keyup.enter)="saveColumnKey($event, item, i)"
-                        (keyup.escape)="cancelColumnKey($event, item, i)"
-                        [(ngModel)]="item.editTo"
-                        type="text"
-                        id="edit-columnKey-to-input{{i}}"
-                        class="form-control"
-                      >
-                      <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                    </span>
-                    <span class="null-box-btn">
-                      <input
-                        (click)="setFromNull($event, item, i)"
-                        [checked]="item.editFrom === nullMsg"
-                        type="radio"
-                        class="btn-check"
-                        name="options-outlined"
-                        id="from-null{{i}}"
-                        autocomplete="off"
-                      >
-                      <label [style]="radioLeftNullBtnStyle" class="btn btn-outline-warning" for="from-null{{i}}">From</label>
-                      <input
-                        (click)="resetNull($event, item, i)"
-                        [checked]="item.editFrom !== nullMsg && item.editTo !== nullMsg"
-                        type="radio"
-                        class="btn-check"
-                        name="options-outlined"
-                        id="na{{i}}"
-                        autocomplete="off"
-                      >
-                      <label [style]="radioMidNullBtnStyle" class="btn btn-outline-secondary" for="na{{i}}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16">
-                          <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"/>
-                        </svg>
-                        Null
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
-                          <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
-                        </svg>
-                      </label>
-                      <input
-                        (click)="setToNull($event, item, i)"
-                        [checked]="item.editTo === nullMsg"
-                        type="radio"
-                        class="btn-check"
-                        name="options-outlined"
-                        id="to-null{{i}}"
-                        autocomplete="off"
-                      >
-                      <label [style]="radioRightNullBtnStyle" class="btn btn-outline-warning" for="to-null{{i}}">To</label>
-                    </span>
-                  </span>
-                  </label>
-                  <span [style]="item.isEditing ? cellBorderHoverColor : null" class="advance-columnKey-index">{{ i }}.</span>
-                </div>
-              </div>
-              <div class="advance-replacement-add-btn">
-                <div class="advance-radio-add-btn">
-                  <input (click)="createColumnKey()" type="checkbox" class="advance-radio" id="advance-radio-add-columnKey-btn" autocomplete="off">
-                  <label class="advance-add-label" for="advance-radio-add-columnKey-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-                      <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
-                    </svg>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div class="advance-replaceKey">
-              <h1 class="advance-title noselect"> <Strong> B.</Strong> Rows Replace in a specific column </h1>
-              <div *ngFor="let item of displayReplacement.replaceKey; let i = index" class="advance-replaceKey-cell">
-                <div class="advance-replaceKey-radio-group">
-                  <div (click)="editReplaceKey($event, item)" *ngIf="!item.isEditing" class="advance-replaceKey-edit-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" id="columnKey-bi-pencil-square" viewBox="0 0 16 16">
-                      <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                      <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-                    </svg>
-                  </div>
-                  <div *ngIf="item.isEditing" class="advance-replaceKey-editing-btn-box">
-                    <div (click)="saveReplaceKey($event, item, i)" class="advance-columnKey-check-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" id="columnKey-bi-check-lg" viewBox="0 0 16 16">
-                        <path d="M13.485 1.431a1.473 1.473 0 0 1 2.104 2.062l-7.84 9.801a1.473 1.473 0 0 1-2.12.04L.431 8.138a1.473 1.473 0 0 1 2.084-2.083l4.111 4.112 6.82-8.69a.486.486 0 0 1 .04-.045z"/>
-                      </svg>
-                    </div>
-                    <div (click)="cancelReplaceKey($event, item, i)" class="advance-replaceKey-x-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" id="columnKey-bi-x-lg" viewBox="0 0 16 16">
-                        <path d="M1.293 1.293a1 1 0 0 1 1.414 0L8 6.586l5.293-5.293a1 1 0 1 1 1.414 1.414L9.414 8l5.293 5.293a1 1 0 0 1-1.414 1.414L8 9.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L6.586 8 1.293 2.707a1 1 0 0 1 0-1.414z"/>
-                      </svg>
-                    </div>
-                    <div (click)="deleteReplaceKey($event, item, i)" class="advance-replaceKey-trash-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" id="columnKey-bi-trash-fill" viewBox="0 0 16 16">
-                        <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <input *ngIf="!item.isEditing" (click)="selectReplaceKey($event, item, i)" [checked]="item.checked" type="checkbox" class="advance-replaceKey-radio" id="advance-replaceKey-radio-btn{{i}}" autocomplete="off">
-                  <label [style]="item.isEditing ? editingCellStyle : null" class="advance-replaceKey-label" for="advance-replaceKey-radio-btn{{i}}">
-                  <span *ngIf="!item.isEditing" class="non-edit-box">
-                    <span class="c-name-box">
-                      <span class="c-title-label"> Target column name: </span>
-                      <span class="dont-break-out">{{ item.columnName }}</span>
-                    </span>
-                    <span class="r-name-box">
-                      <span class="r-title-label"> Row name: </span>
-                      <span *ngIf="item.from !== nullMsg" class="dont-break-out">{{ item.from }}</span>
-                      <span *ngIf="item.from === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                    </span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-down" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
-                    </svg>
-                    <span *ngIf="item.to !== nullMsg" class="dont-break-out">{{ item.to }}</span>
-                    <span *ngIf="item.to === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                  </span>
-                    <span *ngIf="item.isEditing" class="editing-box">
-                    <span class="editing-input-label">
-                      <label for="edit-replaceKey-columnName-input{{i}}" class="target-name-label noselect"> Column Name: </label>
-                      <input
-                        (keyup.enter)="saveReplaceKey($event, item, i)"
-                        (keyup.escape)="cancelReplaceKey($event, item, i)"
-                        [(ngModel)]="item.editColumnName"
-                        type="text"
-                        id="edit-replaceKey-columnName-input{{i}}"
-                        class="form-control"
-                      >
-                      <label class="from-label noselect m-t-10" for="edit-replaceKey-from-input{{i}}"> From : </label>
-                      <input
-                        *ngIf="item.editFrom !== nullMsg"
-                        (keyup.enter)="saveReplaceKey($event, item, i)"
-                        (keyup.escape)="cancelReplaceKey($event, item, i)"
-                        [(ngModel)]="item.editFrom"
-                        type="text"
-                        id="edit-replaceKey-from-input{{i}}"
-                        class="form-control"
-                      >
-                      <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                      <span class="exchange-btn-box">
-                        <span (click)="switchFromAndTo($event, item, i)" class="exchange-btn">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-down-up" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z"/>
-                          </svg>
-                        </span>
-                      </span>
-                      <label class="to-label noselect" for="edit-replaceKey-to-input{{i}}"> To : </label>
-                      <input
-                        *ngIf="item.editTo !== nullMsg"
-                        (keyup.enter)="saveReplaceKey($event, item, i)"
-                        (keyup.escape)="cancelReplaceKey($event, item, i)"
-                        [(ngModel)]="item.editTo"
-                        type="text"
-                        id="edit-replaceKey-to-input{{i}}"
-                        class="form-control"
-                      >
-                      <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                    </span>
-                    <span class="null-box-btn">
-                      <input
-                        (click)="setFromNull($event, item, i)"
-                        [checked]="item.editFrom === nullMsg"
-                        type="radio"
-                        class="btn-check"
-                        name="options-outlined"
-                        id="from-null-replaceKey{{i}}"
-                        autocomplete="off"
-                      >
-                      <label [style]="radioLeftNullBtnStyle" class="btn btn-outline-warning" for="from-null-replaceKey{{i}}">From</label>
-                      <input
-                        (click)="resetNull($event, item, i)"
-                        [checked]="item.editFrom !== nullMsg && item.editTo !== nullMsg"
-                        type="radio"
-                        class="btn-check"
-                        name="options-outlined"
-                        id="na-replaceKey{{i}}"
-                        autocomplete="off"
-                      >
-                      <label [style]="radioMidNullBtnStyle" class="btn btn-outline-secondary" for="na-replaceKey{{i}}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16">
-                          <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"/>
-                        </svg>
-                        Null
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
-                          <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
-                        </svg>
-                      </label>
-                      <input
-                        (click)="setToNull($event, item, i)"
-                        [checked]="item.editTo === nullMsg"
-                        type="radio"
-                        class="btn-check"
-                        name="options-outlined"
-                        id="to-null-replaceKey{{i}}"
-                        autocomplete="off"
-                      >
-                      <label [style]="radioRightNullBtnStyle" class="btn btn-outline-warning" for="to-null-replaceKey{{i}}">To</label>
-                    </span>
-                  </span>
-                  </label>
-                  <span class="advance-replaceKey-index">{{ i }}.</span>
-                </div>
-              </div>
-              <div class="advance-replacement-add-btn">
-                <div class="advance-radio-add-btn">
-                  <input (click)="createReplaceKey()" type="checkbox" class="advance-radio" id="advance-radio-add-replaceKey-btn" autocomplete="off">
-                  <label class="advance-add-label" for="advance-radio-add-replaceKey-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-                      <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
-                    </svg>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div class="advance-replaceAll">
-              <h1 class="advance-title noselect"> <Strong> C.</Strong> Rows replace </h1>
-              <div *ngFor="let item of displayReplacement.rowKey; let i = index" class="advance-rowKey-cell">
-                <div class="advance-rowKey-radio-group">
-                  <div *ngIf="!item.isEditing" class="advance-rowKey-edit-btn">
-                    <svg (click)="editRowKey($event, item)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" id="columnKey-bi-pencil-square" viewBox="0 0 16 16">
-                      <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                      <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-                    </svg>
-                  </div>
-                  <div *ngIf="item.isEditing" class="advance-rowKey-editing-btn-box">
-                    <div (click)="saveRowKey($event, item, i)" class="advance-columnKey-check-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" id="columnKey-bi-check-lg" viewBox="0 0 16 16">
-                        <path d="M13.485 1.431a1.473 1.473 0 0 1 2.104 2.062l-7.84 9.801a1.473 1.473 0 0 1-2.12.04L.431 8.138a1.473 1.473 0 0 1 2.084-2.083l4.111 4.112 6.82-8.69a.486.486 0 0 1 .04-.045z"/>
-                      </svg>
-                    </div>
-                    <div (click)="cancelRowKey($event, item, i)" class="advance-rowKey-x-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" id="columnKey-bi-x-lg" viewBox="0 0 16 16">
-                        <path d="M1.293 1.293a1 1 0 0 1 1.414 0L8 6.586l5.293-5.293a1 1 0 1 1 1.414 1.414L9.414 8l5.293 5.293a1 1 0 0 1-1.414 1.414L8 9.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L6.586 8 1.293 2.707a1 1 0 0 1 0-1.414z"/>
-                      </svg>
-                    </div>
-                    <div (click)="deleteRowKey($event, item, i)" class="advance-rowKey-trash-btn">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" id="columnKey-bi-trash-fill" viewBox="0 0 16 16">
-                        <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <input *ngIf="!item.isEditing" (click)="selectRowKey($event, item, i)" [checked]="item.checked" type="checkbox" class="advance-rowKey-radio" id="advance-rowKey-radio-btn{{i}}" autocomplete="off">
-                  <label [style]="item.isEditing ? editingCellStyle : null" class="advance-rowKey-label" for="advance-rowKey-radio-btn{{i}}">
-                  <span *ngIf="!item.isEditing" class="non-edit-box">
-                    <span class="r-name-box">
-                      <span class="r-title-label"> Row name: </span>
-                      <span *ngIf="item.from !== nullMsg" class="dont-break-out">{{ item.from }}</span>
-                      <span *ngIf="item.from === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                    </span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-down" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
-                    </svg>
-                    <span *ngIf="item.to !== nullMsg" class="dont-break-out">{{ item.to }}</span>
-                    <span *ngIf="item.to === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                  </span>
-                    <span *ngIf="item.isEditing" class="editing-box">
-                    <span class="editing-input-label">
-                      <label class="from-label noselect" for="edit-rowKey-from-input{{i}}"> From : </label>
-                      <input
-                        *ngIf="item.editFrom !== nullMsg"
-                        (keyup.enter)="saveRowKey($event, item, i)"
-                        (keyup.escape)="cancelRowKey($event, item, i)"
-                        [(ngModel)]="item.editFrom"
-                        type="text"
-                        id="edit-rowKey-from-input{{i}}"
-                        class="form-control"
-                      >
-                      <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                      <span class="exchange-btn-box">
-                        <span (click)="switchFromAndTo($event, item, i)" class="exchange-btn">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-down-up" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z"/>
-                          </svg>
-                        </span>
-                      </span>
-                      <label class="to-label noselect" for="edit-rowKey-to-input{{i}}"> To : </label>
-                      <input
-                        *ngIf="item.editTo !== nullMsg"
-                        (keyup.enter)="saveRowKey($event, item, i)"
-                        (keyup.escape)="cancelRowKey($event, item, i)"
-                        [(ngModel)]="item.editTo"
-                        type="text"
-                        id="edit-rowKey-to-input{{i}}"
-                        class="form-control"
-                      >
-                      <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
-                    </span>
-                    <span class="null-box-btn">
-                      <input
-                        (click)="setFromNull($event, item, i)"
-                        [checked]="item.editFrom === nullMsg"
-                        type="radio"
-                        class="btn-check"
-                        name="options-outlined"
-                        id="from-null-rowKey{{i}}"
-                        autocomplete="off"
-                      >
-                      <label [style]="radioLeftNullBtnStyle" class="btn btn-outline-warning" for="from-null-rowKey{{i}}">From</label>
-                      <input
-                        (click)="resetNull($event, item, i)"
-                        [checked]="item.editFrom !== nullMsg && item.editTo !== nullMsg"
-                        type="radio"
-                        class="btn-check"
-                        name="options-outlined"
-                        id="na-rowKey{{i}}"
-                        autocomplete="off"
-                      >
-                      <label [style]="radioMidNullBtnStyle" class="btn btn-outline-secondary" for="na-rowKey{{i}}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16">
-                          <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"/>
-                        </svg>
-                        Null
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
-                          <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
-                        </svg>
-                      </label>
-                      <input
-                        (click)="setToNull($event, item, i)"
-                        [checked]="item.editTo === nullMsg"
-                        type="radio"
-                        class="btn-check"
-                        name="options-outlined"
-                        id="to-null-rowKey{{i}}"
-                        autocomplete="off"
-                      >
-                      <label [style]="radioRightNullBtnStyle" class="btn btn-outline-warning" for="to-null-rowKey{{i}}">To</label>
-                    </span>
-                  </span>
-                  </label>
-                  <span class="advance-rowKey-index">{{ i }}.</span>
-                </div>
-              </div>
-              <div class="advance-replacement-add-btn">
-                <div class="advance-radio-add-btn">
-                  <input (click)="createRowKey()" type="checkbox" class="advance-radio" id="advance-radio-add-rowKey-btn" autocomplete="off">
-                  <label class="advance-add-label" for="advance-radio-add-rowKey-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-                      <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
-                    </svg>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="pre-load-pick-box">
-      </div>
-    </div>
-    <div class="advance-btn-up-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" fill="currentColor" class="bi bi-chevron-up" viewBox="0 0 16 16">
-        <path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/>
-      </svg>
-    </div>
-  </div>
-  <div class="reset-everything-box">
-    <h1>Danger Zone</h1>
-    <div class="reset-btn-box">
-      <div class="d-grid gap-2 col-6 mx-auto">
-        <button id="reset-btn" (click)="resetToDefault()" class="btn btn-primary" type="button">Reset everything to default</button>
-      </div>
-    </div>
+  <div class="back-to-top">
+    <svg (click)="scrollToTop()" xmlns="http://www.w3.org/2000/svg" width="56" height="56" fill="currentColor" class="bi bi-chevron-bar-up" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M3.646 11.854a.5.5 0 0 0 .708 0L8 8.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708zM2.4 5.2c0 .22.18.4.4.4h10.4a.4.4 0 0 0 0-.8H2.8a.4.4 0 0 0-.4.4z"/>
+    </svg>
   </div>
   <div class="footer">
     <div class="createdby">Created by Yu-Chi Lai © {{date?.getFullYear()}}</div>
