@@ -744,26 +744,38 @@ export class AppComponent implements OnInit {
           /* Read more about handling dismissals below */
           if (result.dismiss === Swal.DismissReason.timer) {
             localStorage.clear();
-            this.selectedIndex = 0;
-            const temp: string[] = this.createADefaultKeyObj();
-            this.allFiledNameList = [];
-            this.allFiledNameList.push(temp);
-            this.invoiceKeyList = temp;
-            this.isAutoDownload = true;
-            this.tempName = this.exportFileName;
-            this.isExcelOnly = true;
-            this.isSportMode = true;
-            this.errorMsg = [];
-            this.listNames = [];
+            // this.selectedIndex = 0;
+            // const temp: string[] = this.createADefaultKeyObj();
+            // this.allFiledNameList = [];
+            // this.allFiledNameList.push(temp);
+            // this.invoiceKeyList = temp;
+            // this.isAutoDownload = true;
+            // this.tempName = this.exportFileName;
+            // this.isExcelOnly = true;
+            // this.isSportMode = true;
+            // this.errorMsg = [];
+            // this.listNames = [];
+            // this.replacements = [];
+            // this.displayReplacement = undefined;
+            // this.orderList = [];
+            // this.isUsingAdvance = false;
+            // Swal.fire({
+            //   title: 'Done!',
+            //   html: 'Everything has been reset. <br> Thank you for your patience!',
+            //   icon: 'success',
+            //   didClose: () => window.scrollTo({
+            //     top: 0,
+            //     left: 0,
+            //     behavior: 'smooth'
+            //   })
+            // });
             Swal.fire({
               title: 'Done!',
               html: 'Everything has been reset. <br> Thank you for your patience!',
               icon: 'success',
-              didClose: () => window.scrollTo({
-                top: 0,
-                left: 0,
-                behavior: 'smooth'
-              })
+            }).then((result) => {
+              // Reload the Page
+              location.reload();
             });
           }
         });
@@ -1046,16 +1058,12 @@ export class AppComponent implements OnInit {
     if(item.editName !== undefined){
       item.editName = item.editName.trim();
       if(item.editName.length > 0){
-        if(this.replacements !== undefined){
-          this.resetReplacementChecked(this.replacements, true, false, false, false, false);
-        }
         item.name = item.editName;
         item.editName = undefined;
         item.isEditing = false;
         item.isJustCreated = false;
-        item.checked = true;
+        this.selectReplacement(event, item, index);
         this.saveReplacementInLocalStorage();
-        this.displayReplacement = item;
         this.Toast.fire({
           icon: 'success',
           title: 'Saved!'
@@ -1875,13 +1883,14 @@ export class AppComponent implements OnInit {
   }
 
   createRowKey(): void{
+    console.warn('create')
     const n: IRowName = new RowName();
     n.id = this.getUUID();
     n.isEditing = true;
     n.isJustCreated = true;
     if(this.displayReplacement !== undefined){
-      if(this.displayReplacement.replaceKey === undefined) {
-        this.displayReplacement.replaceKey = [];
+      if(this.displayReplacement.rowKey === undefined) {
+        this.displayReplacement.rowKey = [];
       }
     }
     this.displayReplacement?.rowKey?.push(n);
