@@ -1046,15 +1046,23 @@ export class AppComponent implements OnInit {
     if(item.editName !== undefined){
       item.editName = item.editName.trim();
       if(item.editName.length > 0){
+        if(this.replacements !== undefined){
+          this.resetReplacementChecked(this.replacements, true, false, false, false, false);
+        }
         item.name = item.editName;
         item.editName = undefined;
         item.isEditing = false;
         item.isJustCreated = false;
+        item.checked = true;
         this.saveReplacementInLocalStorage();
+        this.displayReplacement = item;
         this.Toast.fire({
           icon: 'success',
           title: 'Saved!'
         });
+        console.warn(item);
+        console.warn(this.displayReplacement)
+        console.warn(this.replacements)
       }
       else{
         this.ToastTop.fire({
@@ -2180,6 +2188,7 @@ export class AppComponent implements OnInit {
   }
 
   addingOrderList(): void{
+    this.orderList = [];
     if(this.checkIfDisplayOrder(0) && !this.orderList.includes('A')){
       this.orderList.push('A');
     }
@@ -2200,7 +2209,6 @@ export class AppComponent implements OnInit {
     for (let i = 1; i < this.orderList.length; i++) {
       this.exchangeArrowBtnOfOrderList.push(String(this.orderList.length));
     }
-    console.warn(this.exchangeArrowBtnOfOrderList)
   }
 
   removeOrderList(option: number): void{

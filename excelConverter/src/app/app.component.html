@@ -254,7 +254,7 @@
         </div>
       </div> -->
     </div>
-    <div *ngIf="displayReplacement !== undefined" class="advance-setting-show-box">
+    <div *ngIf="checkIfOneOfThemIsChecked()" class="advance-setting-show-box">
       <div class="advance-setting-applied-title"> Advance Setting Applied: </div>
       <div class="advance-setting-applied">
         <div *ngFor="let item of displayReplacement?.columnKey; let i = index;" (click)="scrollToColumnKeyCell(i)" class="advance-applied-cell">
