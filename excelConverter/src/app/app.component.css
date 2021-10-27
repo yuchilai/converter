@@ -1741,11 +1741,12 @@ p {
   }
   .slide-box{
     width: 100%;
-    cursor: pointer;
   }
   .slide-box:last-child{
     width: 100%;
     border-bottom: solid 1px rgba(0, 0, 0, 0.17);
+  }
+  .slide-icon{
     cursor: pointer;
   }
   .advance-mobile-title{
@@ -1797,11 +1798,12 @@ p {
   }
   .slide-box{
     width: 100%;
-    cursor: pointer;
   }
   .slide-box:last-child{
     width: 100%;
     border-bottom: solid 1px rgba(0, 0, 0, 0.17);
+  }
+  .slide-icon{
     cursor: pointer;
   }
   .advance-mobile-title{
