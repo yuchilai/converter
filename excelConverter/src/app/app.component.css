@@ -1780,6 +1780,12 @@ p {
   .form-label{
     font-size: 18px;
   }
+  .back-to-top:hover::after {
+    display: none;
+  }
+  .create-list-container:hover::before {
+    display: none;
+  }
 }
 
 /* For Tablets */
@@ -1838,6 +1844,12 @@ p {
   }
   .form-label{
     font-size: 18px;
+  }
+  .back-to-top:hover::after {
+    display: none;
+  }
+  .create-list-container:hover::before {
+    display: none;
   }
 }
 

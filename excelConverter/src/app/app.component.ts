@@ -2555,7 +2555,8 @@ export class AppComponent implements OnInit {
     this.scrollToView(this.decimalPlaceCells?.get(index));
   }
 
-  expandOrCollapse(option: number): void{
+  expandOrCollapse(option: number, event: any): void{
+    event.preventDefault();
     let temp = false;
     switch (option){
       case 0:{
