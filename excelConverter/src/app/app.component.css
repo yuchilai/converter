@@ -1747,6 +1747,8 @@ p {
     border-bottom: solid 1px rgba(0, 0, 0, 0.17);
   }
   .slide-icon{
+  }
+  .bi-caret-up-fill{
     cursor: pointer;
   }
   .advance-mobile-title{
@@ -1804,6 +1806,8 @@ p {
     border-bottom: solid 1px rgba(0, 0, 0, 0.17);
   }
   .slide-icon{
+  }
+  .bi-caret-up-fill{
     cursor: pointer;
   }
   .advance-mobile-title{
