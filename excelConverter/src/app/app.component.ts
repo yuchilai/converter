@@ -145,6 +145,7 @@ export class AppComponent implements OnInit {
   mobileWidth = 540;
   tabletsWidth = 780;
   isMobile?: boolean;
+  preIsMobile?: boolean;
   isTablet?: boolean;
   isDesktopDevice?: boolean;
   deviceInfo?: any;
@@ -154,6 +155,7 @@ export class AppComponent implements OnInit {
   decimalPlaceCollapsed = false;
   mobileBorderTop = 'border-top: solid 1px rgba(0, 0, 0, 0.17);';
   mobileExpandStyle = 'border-top: solid 1px rgba(0, 0, 0, 0.17); padding: 20px;';
+  resizeC = 1;
 
   Toast = Swal.mixin({
     toast: true,
@@ -195,14 +197,21 @@ export class AppComponent implements OnInit {
 
   @HostListener('window:resize', ['$event'])
   onResize(event: any): void {
-    this.screenWidth = window.innerWidth;
-    if(this.screenWidth !== undefined){
-      this.detectMobileScreen(this.screenWidth);
+    if (window.innerWidth != this.screenWidth) {
+
+      // Update the window width for next time
+      this.screenWidth = window.innerWidth;
+      if(this.screenWidth !== undefined){
+        console.warn(this.screenWidth)
+        this.detectMobileScreen(this.screenWidth);
+      }
     }
+
   }
 
   ngOnInit() {
     this.convertTypeList = OUTPUT_FORMATS;
+    // this.preIsMobile = this.deviceService.isMobile() || this.deviceService.isTablet();
     this.screenWidth = window.innerWidth;
     if(this.screenWidth !== undefined){
       this.detectMobileScreen(this.screenWidth);
@@ -2898,18 +2907,23 @@ export class AppComponent implements OnInit {
 
   protected detectMobileScreen(screenWidth: any): void{
     if(screenWidth <= this.mobileWidth){
+      this.preIsMobile = this.isMobile;
       this.isMobile = true;
     }
     else if(screenWidth > this.mobileWidth && screenWidth <= this.tabletsWidth){
+      this.preIsMobile = this.isMobile;
       this.isMobile = true;
     }
     else{
+      this.preIsMobile = this.isMobile;
       this.isDesktopDevice = true;
       this.isMobile = false;
     }
-    this.columnKeyCollapsed = this.isMobile;
-    this.replaceKeyCollapsed = this.isMobile;
-    this.replaceAllCollapsed = this.isMobile;
-    this.decimalPlaceCollapsed = this.isMobile;
+    if(this.preIsMobile !== this.isMobile){
+      this.columnKeyCollapsed = this.isMobile;
+      this.replaceKeyCollapsed = this.isMobile;
+      this.replaceAllCollapsed = this.isMobile;
+      this.decimalPlaceCollapsed = this.isMobile;
+    }
   }
 }
