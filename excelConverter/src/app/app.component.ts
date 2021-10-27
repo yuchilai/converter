@@ -15,11 +15,19 @@ import * as uuid from 'uuid';
 import {IRowName, RowName} from "./entities/rowName.model";
 import {OUTPUT_FORMATS} from "./entities/xlsxBookType";
 import {DecimalPlace, IDecimalPlaces} from "./entities/decimalPlaces.model";
+import {collapse, fade, leftRotate, rightRotate} from "./util/animation";
+import {DeviceDetectorService} from 'ngx-device-detector';
 
 @Component({
   selector: 'my-app',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
+  animations: [
+    fade,
+    collapse,
+    rightRotate,
+    leftRotate
+  ]
 })
 export class AppComponent implements OnInit {
   @ViewChild('myInput')
@@ -42,6 +50,18 @@ export class AppComponent implements OnInit {
 
   @ViewChild('advanceThreeChoices')
   advanceThreeChoices?: ElementRef;
+
+  @ViewChild('advanceATitle')
+  advanceATitle?: ElementRef;
+
+  @ViewChild('advanceBTitle')
+  advanceBTitle?: ElementRef;
+
+  @ViewChild('advanceCTitle')
+  advanceCTitle?: ElementRef;
+
+  @ViewChild('advanceDTitle')
+  advanceDTitle?: ElementRef;
 
   @ViewChildren('layoutList') layoutList?: QueryList<ElementRef>;
 
@@ -121,6 +141,19 @@ export class AppComponent implements OnInit {
   prefix = 'x.';
   height?: number;
   nullForApplied = '(NULL)';
+  screenWidth?: number;
+  mobileWidth = 540;
+  tabletsWidth = 780;
+  isMobile?: boolean;
+  isTablet?: boolean;
+  isDesktopDevice?: boolean;
+  deviceInfo?: any;
+  columnKeyCollapsed = false;
+  replaceKeyCollapsed = false;
+  replaceAllCollapsed = false;
+  decimalPlaceCollapsed = false;
+  mobileBorderTop = 'border-top: solid 1px rgba(0, 0, 0, 0.17);';
+  mobileExpandStyle = 'border-top: solid 1px rgba(0, 0, 0, 0.17); padding: 20px;';
 
   Toast = Swal.mixin({
     toast: true,
@@ -146,7 +179,12 @@ export class AppComponent implements OnInit {
     },
   });
 
-  constructor(private excelService: ExcelService) {}
+  constructor(
+    private excelService: ExcelService,
+    private deviceService: DeviceDetectorService
+  ) {
+    // this.epicFunction();
+  }
 
   @HostListener('window:keyup', ['$event'])
   keyEvent(event: KeyboardEvent): void {
@@ -155,9 +193,20 @@ export class AppComponent implements OnInit {
     }
   }
 
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any): void {
+    this.screenWidth = window.innerWidth;
+    if(this.screenWidth !== undefined){
+      this.detectMobileScreen(this.screenWidth);
+    }
+  }
+
   ngOnInit() {
-    this.convertTypeList = OUTPUT_FORMATS
-    console.warn(OUTPUT_FORMATS);
+    this.convertTypeList = OUTPUT_FORMATS;
+    this.screenWidth = window.innerWidth;
+    if(this.screenWidth !== undefined){
+      this.detectMobileScreen(this.screenWidth);
+    }
     this.replacements = [];
     const tempReplacements = localStorage.getItem(this.storageReplaceName);
     if(tempReplacements !== null){
@@ -276,6 +325,24 @@ export class AppComponent implements OnInit {
         this.isSportMode = this.behavior.addingMode;
       }
     }
+  }
+
+  epicFunction(): void {
+    console.log('hello `Home` component');
+    this.deviceInfo = this.deviceService.getDeviceInfo();
+    this.isMobile = this.deviceService.isMobile(); // returns if the device is a mobile device (android / iPhone / windows-phone etc)
+    this.isTablet = this.deviceService.isTablet(); // returns if the device us a tablet (iPad etc)
+    this.isDesktopDevice = this.deviceService.isDesktop(); // returns if the app is running on a Desktop browser.
+    if(this.isTablet){
+      this.isMobile = true;
+    }
+    this.columnKeyCollapsed = this.isMobile;
+    this.replaceKeyCollapsed = this.isMobile;
+    this.replaceAllCollapsed = this.isMobile;
+    this.decimalPlaceCollapsed = this.isMobile;
+    console.log(this.isMobile);
+    console.log(this.isTablet);
+    console.log(this.isDesktopDevice);
   }
 
   onFileChange(ev: any) {
@@ -528,6 +595,7 @@ export class AppComponent implements OnInit {
       );
       this.saveReplacementInLocalStorage(true);
     }
+    console.warn(this.displayReplacement?.columnKey)
   }
 
   dropReplaceKeyOrder(event: CdkDragDrop<string[]>) {
@@ -773,9 +841,22 @@ export class AppComponent implements OnInit {
               title: 'Done!',
               html: 'Everything has been reset. <br> Thank you for your patience!',
               icon: 'success',
+              didClose: () => window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'smooth'
+              })
             }).then((result) => {
               // Reload the Page
-              location.reload();
+              window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'smooth'
+              })
+              setTimeout(()=>{
+                location.reload();
+              }, 1000)
+
             });
           }
         });
@@ -1226,15 +1307,25 @@ export class AppComponent implements OnInit {
 
   selectReplacement(event: any, item: IReplacement, i: number): void{
     // event.preventDefault();
+    console.warn(item.checked)
+    const originalCheck = item.checked;
+    if(item.checked){
+      this.displayReplacement = undefined;
+    }
+    else{
+      this.displayReplacement = item;
+    }
     if(this.replacements !== undefined){
       this.resetReplacementChecked(this.replacements, true, false, false, false, false);
-      item.checked = true;
     }
-    this.displayReplacement = item;
+    item.checked = !originalCheck;
     this.addingOrderList();
-    this.advanceThreeChoices?.nativeElement.scrollIntoView({
-      behavior: 'smooth',
-    });
+    if(this.displayReplacement !== undefined){
+      this.advanceThreeChoices?.nativeElement.scrollIntoView({
+        behavior: 'smooth',
+      });
+    }
+    console.warn(item.checked)
   }
 
   checkIfHasSame(targets: string[]): boolean{
@@ -2464,6 +2555,59 @@ export class AppComponent implements OnInit {
     this.scrollToView(this.decimalPlaceCells?.get(index));
   }
 
+  expandOrCollapse(option: number): void{
+    let temp = false;
+    switch (option){
+      case 0:{
+        temp = this.columnKeyCollapsed;
+        break;
+      }
+      case 1:{
+        temp = this.replaceKeyCollapsed;
+        break;
+      }
+      case 2:{
+        temp = this.replaceAllCollapsed;
+        break;
+      }
+      case 3:{
+        temp = this.decimalPlaceCollapsed;
+        break;
+      }
+    }
+    this.collapseAll();
+    switch (option){
+      case 0:{
+        this.columnKeyCollapsed = !temp;
+        setTimeout(()=> {
+          this.scrollToView(this.advanceATitle);
+        }, 400);
+        break;
+      }
+      case 1:{
+        this.replaceKeyCollapsed = !temp;
+        setTimeout(()=> {
+          this.scrollToView(this.advanceBTitle);
+        }, 400);
+        break;
+      }
+      case 2:{
+        this.replaceAllCollapsed = !temp;
+        setTimeout(()=> {
+          this.scrollToView(this.advanceCTitle);
+        }, 400);
+        break;
+      }
+      case 3:{
+        this.decimalPlaceCollapsed = !temp;
+        setTimeout(()=> {
+          this.scrollToView(this.advanceDTitle);
+        }, 400);
+        break;
+      }
+    }
+  }
+
   protected addShakingAnimation(targetId: string): void {
     document.getElementById(targetId)?.classList.add('animate__animated');
     document.getElementById(targetId)?.classList.add('animate__headShake');
@@ -2735,5 +2879,36 @@ export class AppComponent implements OnInit {
     elementRef?.nativeElement.scrollIntoView({
       behavior: 'smooth',
     });
+  }
+
+  protected expandAll(): void{
+    this.columnKeyCollapsed = false;
+    this.replaceKeyCollapsed = false;
+    this.replaceAllCollapsed = false;
+    this.decimalPlaceCollapsed = false;
+  }
+
+  protected collapseAll(): void{
+    this.columnKeyCollapsed = true;
+    this.replaceKeyCollapsed = true;
+    this.replaceAllCollapsed = true;
+    this.decimalPlaceCollapsed = true;
+  }
+
+  protected detectMobileScreen(screenWidth: any): void{
+    if(screenWidth <= this.mobileWidth){
+      this.isMobile = true;
+    }
+    else if(screenWidth > this.mobileWidth && screenWidth <= this.tabletsWidth){
+      this.isMobile = true;
+    }
+    else{
+      this.isDesktopDevice = true;
+      this.isMobile = false;
+    }
+    this.columnKeyCollapsed = this.isMobile;
+    this.replaceKeyCollapsed = this.isMobile;
+    this.replaceAllCollapsed = this.isMobile;
+    this.decimalPlaceCollapsed = this.isMobile;
   }
 }
