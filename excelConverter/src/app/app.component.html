@@ -136,6 +136,27 @@
 </label> -->
       </div>
     </div>
+    <div *ngIf="!isColumnHeaderChanged" class="control-calc-line-number-box">
+      <div
+        class="control-title"
+
+      >
+        {{
+        isCalcLineNO
+          ? 'Include and calculate line number'
+          : 'Do\'t include line number'
+        }}
+      </div>
+      <div class="form-check form-switch" id="calculate-line-number-switch-btn">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="flexSwitchCheckCheckedLineNumber"
+          [checked]="isCalcLineNO"
+          (click)="switchCalcLineNO()"
+        />
+      </div>
+    </div>
     <div class="control-accpet-box">
       <!-- [style]="isAutoDowload ? excelStyle : notExcelStyle" -->
       <div
@@ -724,13 +745,13 @@
                           <span class="c-name-box">
                           <span class="c-title-label"> Column name: </span>
                           <span *ngIf="item.from !== nullMsg" class="dont-break-out">{{ item.from }}</span>
-                          <span *ngIf="item.from === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+<!--                          <span *ngIf="item.from === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>-->
                         </span>
                           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-down" viewBox="0 0 16 16">
                             <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
                           </svg>
                           <span *ngIf="item.to !== nullMsg" class="dont-break-out">{{ item.to }}</span>
-                          <span *ngIf="item.to === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+<!--                          <span *ngIf="item.to === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>-->
                         </span>
                         <span *ngIf="item.isEditing" class="editing-box">
                           <span class="editing-input-label">
@@ -739,12 +760,15 @@
                             *ngIf="item.editFrom !== nullMsg"
                             (keyup.enter)="saveColumnKey($event, item, i)"
                             (keyup.escape)="cancelColumnKey($event, item, i)"
+                            (keyup)="fetchSeries($event, item, i)"
+                            (focusout)="notDisplaySearchDropdown(item)"
                             [(ngModel)]="item.editFrom"
                             type="text"
                             id="edit-columnKey-from-input{{i}}"
                             class="form-control"
                           >
-                          <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                          <app-search-dropdown [item]="item"></app-search-dropdown>
+<!--                          <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>-->
                           <span class="exchange-btn-box">
                             <span (click)="switchFromAndTo($event, item, i)" class="exchange-btn">
                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-down-up" viewBox="0 0 16 16">
@@ -757,53 +781,55 @@
                             *ngIf="item.editTo !== nullMsg"
                             (keyup.enter)="saveColumnKey($event, item, i)"
                             (keyup.escape)="cancelColumnKey($event, item, i)"
+                            (keyup)="fetchSeriesTo($event, item, i)"
                             [(ngModel)]="item.editTo"
                             type="text"
                             id="edit-columnKey-to-input{{i}}"
                             class="form-control"
                           >
-                          <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
+                          <app-search-dropdown-to [item]="item"></app-search-dropdown-to>
+<!--                          <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>-->
                         </span>
-                          <span class="null-box-btn">
-                          <input
-                            (click)="setFromNull($event, item, i)"
-                            [checked]="item.editFrom === nullMsg"
-                            type="radio"
-                            class="btn-check"
-                            name="column-key-null"
-                            id="from-null{{i}}"
-                            autocomplete="off"
-                          >
-                          <label class="btn btn-outline-warning left-null-btn" for="from-null{{i}}">From</label>
-                          <input
-                            (click)="resetNull($event, item, i)"
-                            [checked]="item.editFrom !== nullMsg && item.editTo !== nullMsg"
-                            type="radio"
-                            class="btn-check"
-                            name="column-key-null"
-                            id="na{{i}}"
-                            autocomplete="off"
-                          >
-                          <label class="btn btn-outline-secondary mid-null-btn" for="na{{i}}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16">
-                              <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"/>
-                            </svg>
-                            Null
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
-                              <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>
-                            </svg>
-                          </label>
-                          <input
-                            (click)="setToNull($event, item, i)"
-                            [checked]="item.editTo === nullMsg"
-                            type="radio"
-                            class="btn-check"
-                            name="column-key-null"
-                            id="to-null{{i}}"
-                            autocomplete="off"
-                          >
-                          <label class="btn btn-outline-warning right-null-btn" for="to-null{{i}}">To</label>
-                        </span>
+<!--                        <span class="null-box-btn">-->
+<!--                          <input-->
+<!--                            (click)="setFromNull($event, item, i)"-->
+<!--                            [checked]="item.editFrom === nullMsg"-->
+<!--                            type="radio"-->
+<!--                            class="btn-check"-->
+<!--                            name="column-key-null"-->
+<!--                            id="from-null{{i}}"-->
+<!--                            autocomplete="off"-->
+<!--                          >-->
+<!--                          <label class="btn btn-outline-warning left-null-btn" for="from-null{{i}}">From</label>-->
+<!--                          <input-->
+<!--                            (click)="resetNull($event, item, i)"-->
+<!--                            [checked]="item.editFrom !== nullMsg && item.editTo !== nullMsg"-->
+<!--                            type="radio"-->
+<!--                            class="btn-check"-->
+<!--                            name="column-key-null"-->
+<!--                            id="na{{i}}"-->
+<!--                            autocomplete="off"-->
+<!--                          >-->
+<!--                          <label class="btn btn-outline-secondary mid-null-btn" for="na{{i}}">-->
+<!--                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16">-->
+<!--                              <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"/>-->
+<!--                            </svg>-->
+<!--                            Null-->
+<!--                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16">-->
+<!--                              <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z"/>-->
+<!--                            </svg>-->
+<!--                          </label>-->
+<!--                          <input-->
+<!--                            (click)="setToNull($event, item, i)"-->
+<!--                            [checked]="item.editTo === nullMsg"-->
+<!--                            type="radio"-->
+<!--                            class="btn-check"-->
+<!--                            name="column-key-null"-->
+<!--                            id="to-null{{i}}"-->
+<!--                            autocomplete="off"-->
+<!--                          >-->
+<!--                          <label class="btn btn-outline-warning right-null-btn" for="to-null{{i}}">To</label>-->
+<!--                        </span>-->
                         </span>
                       </label>
                       <span [style]="item.isEditing ? cellBorderHoverColor : null" class="advance-columnKey-index">{{ i }}.</span>
@@ -885,21 +911,27 @@
                       <input
                         (keyup.enter)="saveReplaceKey($event, item, i)"
                         (keyup.escape)="cancelReplaceKey($event, item, i)"
+                        (keyup)="fetchSeriesColumnName($event, item, i)"
+                        (focusout)="notDisplaySearchDropdownColumnName(item)"
                         [(ngModel)]="item.editColumnName"
                         type="text"
                         id="edit-replaceKey-columnName-input{{i}}"
                         class="form-control"
                       >
+                      <app-search-dropdown-column-name [item]="item"></app-search-dropdown-column-name>
                       <label class="from-label noselect m-t-10" for="edit-replaceKey-from-input{{i}}"> From : </label>
                       <input
                         *ngIf="item.editFrom !== nullMsg"
                         (keyup.enter)="saveReplaceKey($event, item, i)"
                         (keyup.escape)="cancelReplaceKey($event, item, i)"
+                        (keyup)="fetchSeries($event, item, i)"
+                        (focusout)="notDisplaySearchDropdown(item)"
                         [(ngModel)]="item.editFrom"
                         type="text"
                         id="edit-replaceKey-from-input{{i}}"
                         class="form-control"
                       >
+                      <app-search-dropdown [item]="item"></app-search-dropdown>
                       <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
                       <span class="exchange-btn-box">
                         <span (click)="switchFromAndTo($event, item, i)" class="exchange-btn">
@@ -913,11 +945,14 @@
                         *ngIf="item.editTo !== nullMsg"
                         (keyup.enter)="saveReplaceKey($event, item, i)"
                         (keyup.escape)="cancelReplaceKey($event, item, i)"
+                        (keyup)="fetchSeriesTo($event, item, i)"
+                        (focusout)="notDisplaySearchDropdownTo(item)"
                         [(ngModel)]="item.editTo"
                         type="text"
                         id="edit-replaceKey-to-input{{i}}"
                         class="form-control"
                       >
+                      <app-search-dropdown-to [item]="item"></app-search-dropdown-to>
                       <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
                     </span>
                     <span class="null-box-btn">
@@ -1038,11 +1073,14 @@
                         *ngIf="item.editFrom !== nullMsg"
                         (keyup.enter)="saveRowKey($event, item, i)"
                         (keyup.escape)="cancelRowKey($event, item, i)"
+                        (keyup)="fetchSeries($event, item, i)"
+                        (focusout)="notDisplaySearchDropdown(item)"
                         [(ngModel)]="item.editFrom"
                         type="text"
                         id="edit-rowKey-from-input{{i}}"
                         class="form-control"
                       >
+                      <app-search-dropdown [item]="item"></app-search-dropdown>
                       <span *ngIf="item.editFrom === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
                       <span class="exchange-btn-box">
                         <span (click)="switchFromAndTo($event, item, i)" class="exchange-btn">
@@ -1056,11 +1094,14 @@
                         *ngIf="item.editTo !== nullMsg"
                         (keyup.enter)="saveRowKey($event, item, i)"
                         (keyup.escape)="cancelRowKey($event, item, i)"
+                        (keyup)="fetchSeriesTo($event, item, i)"
+                        (focusout)="notDisplaySearchDropdownTo(item)"
                         [(ngModel)]="item.editTo"
                         type="text"
                         id="edit-rowKey-to-input{{i}}"
                         class="form-control"
                       >
+                      <app-search-dropdown-to [item]="item"></app-search-dropdown-to>
                       <span *ngIf="item.editTo === nullMsg"  class="badge badge-pill badge-success key-name-list null-badge"> NULL </span>
                     </span>
                     <span class="null-box-btn">
@@ -1171,7 +1212,7 @@
                       <span class="d-title-label"> Decimal places: </span>
                       <span class="dont-break-out">{{ item.decimalPlacesOption }}</span>
                     </span>
-                    <span class="m-name-box">
+                     <span class="m-name-box">
                       <span class="d-title-label"> Math method: </span>
                       <span class="dont-break-out">{{ item.mathMethod }}</span>
                     </span>
@@ -1182,11 +1223,14 @@
                       <input
                         (keyup.enter)="saveDecimalPlace($event, item, i)"
                         (keyup.escape)="cancelDecimalPlace($event, item, i)"
+                        (keyup)="fetchSeriesColumnName($event, item, i)"
+                        (focusout)="notDisplaySearchDropdownColumnName(item)"
                         [(ngModel)]="item.editColumnName"
                         type="text"
                         id="edit-decimalPlace-columnName-input{{i}}"
                         class="form-control"
                       >
+                      <app-search-dropdown-column-name [item]="item"></app-search-dropdown-column-name>
                       <label class="decimalPlace-label m-t-10 noselect" for="edit-decimalPlace-point-input{{i}}"> Decimal places : </label>
                       <span class="decimalPlace-label-box" id="edit-decimalPlace-point-input{{i}}">
                         <span *ngFor="let d of item.decimalPlacesOptionList; let j = index" class="decimalPlace-label">

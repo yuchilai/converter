@@ -1,5 +1,15 @@
 @import '~bootstrap/dist/css/bootstrap.min.css';
 
+.example-form {
+  min-width: 150px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.example-full-width {
+  width: 100%;
+}
+
 .whole-container {
   position: relative;
 }
@@ -180,7 +190,9 @@ p {
   box-shadow: 0 0 0 0.25rem rgb(24, 0, 243 / 50%) !important;
 }
 
-.control-accpet-box, .control-headers-box {
+.control-accpet-box,
+.control-headers-box,
+.control-calc-line-number-box{
   display: flex;
   justify-content: flex-end;
   margin-top: 5px;

@@ -2,6 +2,7 @@ export interface IDecimalPlaces {
   id?: string;
   columnName?: string;
   editColumnName?: string;
+  searchResultForColumnName?: string[];
   decimalPlacesOption?: string;
   editDecimalPlacesOption?: string;
   decimalPlacesOptionList?: string[];
@@ -19,6 +20,7 @@ export class DecimalPlace implements IDecimalPlaces {
     public id?: string,
     public columnName?: string,
     public editColumnName?: string,
+    public searchResultForColumnName?: string[],
     public decimalPlacesOption?: string,
     public editDecimalPlacesOption?: string,
     public decimalPlacesOptionList?: string[],

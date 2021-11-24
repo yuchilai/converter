@@ -17,6 +17,7 @@ import {OUTPUT_FORMATS} from "./entities/xlsxBookType";
 import {DecimalPlace, IDecimalPlaces} from "./entities/decimalPlaces.model";
 import {collapse, fade, leftRotate, rightRotate} from "./util/animation";
 import {DeviceDetectorService} from 'ngx-device-detector';
+import {FormControl} from "@angular/forms";
 
 @Component({
   selector: 'my-app',
@@ -73,9 +74,11 @@ export class AppComponent implements OnInit {
 
   @ViewChildren('decimalPlaceCells') decimalPlaceCells?: QueryList<ElementRef>;
 
+  myControl = new FormControl();
   name = 'Certify to Sage Intacct AP Converter';
   willDownload = false;
   invoiceKeyList: string[] = [];
+  invoiceKeyListRevised: string[] = [];
   invoices: any[] = [];
   errorMsg: IErrorMsg[] = [];
   fileName?: string;
@@ -86,6 +89,7 @@ export class AppComponent implements OnInit {
   excelStyle = '  color: #141a46; background-color: #ec8b5e;';
   notExcelStyle = '  color: #ec8b5e; background-color: #141a46;';
   exportFileName = 'AP_Invoices';
+  pageName = 'Sheet';
   isEditExportFileName = false;
   isAdding = false;
   isSportMode = true;
@@ -155,7 +159,8 @@ export class AppComponent implements OnInit {
   decimalPlaceCollapsed = false;
   mobileBorderTop = 'border-top: solid 1px rgba(0, 0, 0, 0.17);';
   mobileExpandStyle = 'border-top: solid 1px rgba(0, 0, 0, 0.17); padding: 20px;';
-  resizeC = 1;
+  isCalcLineNO = false;
+  isRemainTheRestOfHeaders = true;
 
   Toast = Swal.mixin({
     toast: true,
@@ -202,7 +207,6 @@ export class AppComponent implements OnInit {
       // Update the window width for next time
       this.screenWidth = window.innerWidth;
       if(this.screenWidth !== undefined){
-        console.warn(this.screenWidth)
         this.detectMobileScreen(this.screenWidth);
       }
     }
@@ -269,11 +273,9 @@ export class AppComponent implements OnInit {
       const filedNameListFromStorage: Array<string[]> = JSON.parse(
         tempList
       );
-      console.warn(filedNameListFromStorage)
       filedNameListFromStorage.forEach((strList) => {
         this.allFiledNameList.push(strList);
       });
-      console.warn(this.allFiledNameList)
       if (localStorage.getItem(this.storageIndex) !== null) {
         const index = Number(localStorage.getItem(this.storageIndex));
         if (
@@ -333,11 +335,16 @@ export class AppComponent implements OnInit {
       if (this.behavior?.addingMode !== undefined) {
         this.isSportMode = this.behavior.addingMode;
       }
+      if(this.behavior?.headerConvertor !== undefined){
+        this.isColumnHeaderChanged = this.behavior.headerConvertor;
+      }
+      if(this.behavior?.calcLineNO !== undefined){
+        this.isCalcLineNO = this.behavior.calcLineNO;
+      }
     }
   }
 
   epicFunction(): void {
-    console.log('hello `Home` component');
     this.deviceInfo = this.deviceService.getDeviceInfo();
     this.isMobile = this.deviceService.isMobile(); // returns if the device is a mobile device (android / iPhone / windows-phone etc)
     this.isTablet = this.deviceService.isTablet(); // returns if the device us a tablet (iPad etc)
@@ -349,9 +356,6 @@ export class AppComponent implements OnInit {
     this.replaceKeyCollapsed = this.isMobile;
     this.replaceAllCollapsed = this.isMobile;
     this.decimalPlaceCollapsed = this.isMobile;
-    console.log(this.isMobile);
-    console.log(this.isTablet);
-    console.log(this.isDesktopDevice);
   }
 
   onFileChange(ev: any) {
@@ -364,89 +368,62 @@ export class AppComponent implements OnInit {
       this.fileName = ev.target.files[0].name;
       reader.onload = (event) => {
         const data = reader.result;
-        workBook = XLSX.read(data, { type: 'binary' });
-        jsonData = workBook.SheetNames.reduce((initial: any, name: any) => {
-          const sheet = workBook.Sheets[name];
-          initial[name] = XLSX.utils.sheet_to_json(sheet, {defval:"", raw:false});
-          return initial;
-        }, {});
-        const dataString = JSON.stringify(jsonData);
-
-        const jsonArr = JSON.parse(dataString);
+        workBook = XLSX.read(data, {
+          type: 'binary',
+          raw: true,
+        });
+        // jsonData = workBook.SheetNames.reduce((initial: any, name: string) => {
+        //   const sheet = workBook.Sheets[name];
+        //   initial[name] = XLSX.utils.sheet_to_json(sheet, {defval:"", raw:true});
+        //   return initial;
+        // }, {});
+        // const dataString = JSON.stringify(jsonData);
+        // const jsonArr = JSON.parse(dataString);
         this.outputList = [];
         this.displayedList = [];
         this.errorMsg = [];
+        this.invoiceKeyListRevised = [];
         if (workBook.SheetNames.length !== undefined) {
           for (let i = 0; i < workBook.SheetNames.length; i++) {
             this.invoices = [];
+            const work_sheet_headers: string[] = this.getHeadersFromWorkSheet(workBook.Sheets[workBook.SheetNames[i]]);
+            this.invoiceKeyListRevised = this.replaceSameInHeaders(work_sheet_headers);
             if(this.isColumnHeaderChanged){
               var Heading = [
                 this.invoiceKeyList,
               ];
-              if(this.checkIfHasSame(this.invoiceKeyList)){
-                const work_sheet_headers = this.getHeadersFromWorkSheet(workBook.Sheets[workBook.SheetNames[i]]);
-                if(work_sheet_headers.length > 0){
-                  Heading = [
-                    this.mergeTwoHeaders(Object.assign([], this.invoiceKeyList), work_sheet_headers)
-                  ];
-                }
+
+              if(work_sheet_headers.length > 0){
+                Heading = [
+                  this.mergeTwoHeaders(Object.assign([], this.invoiceKeyListRevised), work_sheet_headers)
+                ];
               }
-
-
-              // //Had to create a new workbook and then add the header
-              // const ws = XLSX.utils.book_new();
-              // const jj = XLSX.utils.sheet_add_aoa(XLSX.utils.json_to_sheet(jsonArr[workBook.SheetNames[i]]), Heading, {cellDates: true});
               const ws = XLSX.utils.sheet_add_aoa(workBook.Sheets[workBook.SheetNames[i]], Heading, {cellDates: true, sheetStubs: true});
-              // const jsonObj = XLSX.utils.sheet_to_json(wsHeaders, {defval:""});
-              // const jsonObj = XLSX.utils.sheet_to_json(wsHeaders, {defval:""});
-              this.invoices = XLSX.utils.sheet_to_json(ws, {defval: "", raw: false});
-              console.warn(this.invoices.length)
+              this.excelService.exportAsCustomFileFromWorksheet(
+                ws,
+                this.invoiceKeyListRevised,
+                this.exportFileName,
+                !this.isAutoDownload,
+                this.outputTypeIndex
+              );
               this.isImportEmpty = this.invoices.length === 0;
-              // this.invoices.push(JSON.parse(JSON.stringify(jsonObj)));
-              //
-              // //Starting in the second row to avoid overriding and skipping headers
-              // const workSheet = XLSX.utils.sheet_add_json(ws, jsonArr[workBook.SheetNames[i]], { origin: 'A2', skipHeader: true });
-              // const j = XLSX.utils.sheet_to_json(workSheet);
-              // // console.warn(j)
-              // this.excelService.exportAsExcelFile(
-              //   jsonObj,
-              //   this.exportFileName,
-              //   !this.isAutoDownload
-              // );
-
-              // jsonArr[workBook.SheetNames[i]].forEach((obj: any) => {
-              //   const invoiceObj = this.invoiceKeyList.reduce((carry:any, item: any) => {
-              //     carry[item] = undefined;
-              //     return carry;
-              //   }, {});
-              //   // console.warn(invoiceObj)
-              //   let isObjNotEmpty = false;
-              //   const tempListValue = [];
-              //   console.warn(Object.keys(obj))
-              //   for (var k in obj) {
-              //     // console.warn(k)
-              //     tempListValue.push(obj[k]);
-              //   }
-              //   console.warn(tempListValue)
-              //   let index = 0;
-              //   for(var key in invoiceObj){
-              //     if(invoiceObj.hasOwnProperty(key)){
-              //       invoiceObj[key] = tempListValue[index++];
-              //     }
-              //   }
-              //   this.invoices.push(invoiceObj);
-              // });
             }
             else{
-              jsonArr[workBook.SheetNames[i]].forEach((obj: any) => {
-                let invoiceObj = this.invoiceKeyList.reduce((carry:any, item: any) => {
+              // jsonData = XLSX.utils.sheet_to_json(workBook.Sheets[workBook.SheetNames[i]], {defval:"", raw:true});
+              jsonData = this.overrideHeader(work_sheet_headers, this.invoiceKeyList, this.invoiceKeyListRevised, workBook.Sheets[workBook.SheetNames[i]]);
+              jsonData.forEach((obj: any) => {
+                let invoiceObj = this.invoiceKeyListRevised.reduce((carry:any, item: string, currentIndex: number) => {
+                  if(item === this.sameHeader && currentIndex < work_sheet_headers.length){
+                    // item = Object.keys(obj)[currentIndex];
+                    item = work_sheet_headers[currentIndex];
+                  }
                   carry[item] = undefined;
                   return carry;
                 }, {});
-                // console.warn(invoiceObj)
                 let isObjNotEmpty = false;
+                // Object.keys(invoiceObj).forEach(k => console.warn(k))
                 for (var key in obj) {
-                  this.invoiceKeyList.forEach((k) => {
+                  this.invoiceKeyListRevised.forEach((k: string) => {
                     // console.log("key: " + key + ", value: " + obj[key])
                     // console.log("k: " + k + ", value: " + invoiceObj[k]);
                     // console.log(key === k);
@@ -459,6 +436,7 @@ export class AppComponent implements OnInit {
                   });
                   // console.log("key: " + key + ", value: " + obj[key])
                 }
+                // Object.keys(invoiceObj).forEach(k => console.warn(k))
                 // console.log(isObjNotEmpty)
                 for (const option of this.orderList) {
                   invoiceObj = this.advanceReplace(invoiceObj, option);
@@ -467,58 +445,71 @@ export class AppComponent implements OnInit {
                   this.invoices.push(invoiceObj);
                 }
               });
-              this.countLineNO();
-            }
-            if (this.invoices.length > 0) {
-              if(this.behavior?.outputFormatsIndex !== undefined){
-                this.outputTypeIndex = this.behavior.outputFormatsIndex;
-              }
-              this.excelService.exportAsExcelFile(
-                this.invoices,
-                this.exportFileName,
-                !this.isAutoDownload,
-                this.outputTypeIndex
-              );
-              this.outputList.push(this.invoices);
-              if (this.isAutoDownload) {
-                if (this.checkIfOutputListNotEmpty()) {
-                  this.hasOutput = false;
-                  this.isShowDownloadBtn = true;
+              this.displayReplacement?.columnKey?.forEach((c: IColumnName) => {
+                if(c.checked){
+                  this.invoiceKeyListRevised.forEach((key: string, index: number) => {
+                    if(c.from !== undefined && c.to !== undefined && key === c.from){
+                      this.invoiceKeyListRevised[index] = c.to;
+                    }
+                  });
                 }
-              } else {
-                if (this.checkIfOutputListNotEmpty()) {
-                  this.hasOutput = true;
-                }
-              }
-              const itemObj: IDisplayed = new Displayed();
-              itemObj.name = workBook.SheetNames[i];
-              if (itemObj.displayList === undefined) {
-                itemObj.displayList = [];
-              }
-              itemObj.displayList.push(this.invoices);
-              this.displayedList.push(itemObj);
-            } else {
-              const msgObj = new ErrorMsg();
-              if(this.isImportEmpty){
-                msgObj.msg = 'Cannot accept excel (work sheet) is empty OR only row 1 has the data! TIP: If you want to add headers with empty work sheet, you can add any thing below row 1. Thus, this will add any headers you types.'
-              }
-              else{
-                msgObj.msg =
-                  'Sheet name: ' +
-                  workBook.SheetNames[i] +
-                  ' does not match any field names that are shown in the button of the list (File: ' +
-                  this.fileName +
-                  ')';
-              }
-              msgObj.isDisplayed = true;
-              this.errorMsg.push(msgObj);
-              this.checkIfOutputListNotEmpty();
-
-              this.ToastTop.fire({
-                icon: 'error',
-                title: 'Something went wrong! Please see the detail above!',
               });
+              if(this.isCalcLineNO){
+                this.countLineNO();
+              }
+              if (this.invoices.length > 0) {
+                if(this.behavior?.outputFormatsIndex !== undefined){
+                  this.outputTypeIndex = this.behavior.outputFormatsIndex;
+                }
+                this.excelService.exportAsCustomFileFromJson(
+                  this.invoices,
+                  this.invoiceKeyListRevised,
+                  this.exportFileName,
+                  !this.isAutoDownload,
+                  this.outputTypeIndex
+                );
+                this.outputList.push(this.invoices);
+                if (this.isAutoDownload) {
+                  if (this.checkIfOutputListNotEmpty()) {
+                    this.hasOutput = false;
+                    this.isShowDownloadBtn = true;
+                  }
+                } else {
+                  if (this.checkIfOutputListNotEmpty()) {
+                    this.hasOutput = true;
+                  }
+                }
+                const itemObj: IDisplayed = new Displayed();
+                itemObj.name = workBook.SheetNames[i];
+                if (itemObj.displayList === undefined) {
+                  itemObj.displayList = [];
+                }
+                itemObj.displayList.push(this.invoices);
+                this.displayedList.push(itemObj);
+              } else {
+                const msgObj = new ErrorMsg();
+                if(this.isImportEmpty){
+                  msgObj.msg = 'Cannot accept excel (work sheet) is empty OR only row 1 has the data! TIP: If you want to add headers with empty work sheet, you can add any thing below row 1. Thus, this will add any headers you types.'
+                }
+                else{
+                  msgObj.msg =
+                    'Sheet name: ' +
+                    workBook.SheetNames[i] +
+                    ' does not match any field names that are shown in the button of the list (File: ' +
+                    this.fileName +
+                    ')';
+                }
+                msgObj.isDisplayed = true;
+                this.errorMsg.push(msgObj);
+                this.checkIfOutputListNotEmpty();
+
+                this.ToastTop.fire({
+                  icon: 'error',
+                  title: 'Something went wrong! Please see the detail above!',
+                });
+              }
             }
+
           }
         } else {
           this.ToastTop.fire({
@@ -558,7 +549,18 @@ export class AppComponent implements OnInit {
       let counting = 1;
       for (let j = i - 1; j >= 0; j--) {
         const compareObj = this.invoices[j];
-        if (item.BILL_NO === compareObj.BILL_NO) {
+        if (
+          item.BILL_NO !== undefined &&
+          compareObj.BILL_NO !== undefined &&
+          item.BILL_NO.trim() !== '' &&
+          compareObj.BILL_NO.trim() !== '' &&
+          item.BILL_NO.trim() === compareObj.BILL_NO.trim() &&
+          item.VENDOR_ID !== undefined &&
+          compareObj.VENDOR_ID !== undefined &&
+          item.VENDOR_ID.trim() !== '' &&
+          compareObj.VENDOR_ID.trim() !== '' &&
+          item.VENDOR_ID.trim() === compareObj.VENDOR_ID.trim()
+        ) {
           counting++;
         }
       }
@@ -604,7 +606,6 @@ export class AppComponent implements OnInit {
       );
       this.saveReplacementInLocalStorage(true);
     }
-    console.warn(this.displayReplacement?.columnKey)
   }
 
   dropReplaceKeyOrder(event: CdkDragDrop<string[]>) {
@@ -642,15 +643,10 @@ export class AppComponent implements OnInit {
 
   dragMoved(event: any): void{
     this.height = event.source.element.nativeElement.offsetHeight;
-    console.warn(event.source)
-    console.warn(event.source.element.nativeElement.offsetHeight)
-    console.warn(event.source.element.nativeElement.clientHeight);
-
   }
 
   cdkDragStarted(event:any, dropIndex: number): void{
     this.height = event.source.element.nativeElement.offsetHeight;
-    console.warn(this.height)
   }
 
   editOrder(i: number, item: string[]): void {
@@ -756,9 +752,32 @@ export class AppComponent implements OnInit {
     if (this.inputToBeAdded !== undefined) {
       this.inputToBeAdded = this.inputToBeAdded.trim();
       if (this.inputToBeAdded !== '') {
-        this.invoiceKeyList.push(this.inputToBeAdded);
-        this.isChanged = true;
-        this.inputToBeAdded = undefined;
+        if(this.isKeyExist(this.inputToBeAdded, this.invoiceKeyList)){
+          let temp = this.getPostfixForSameKey(this.inputToBeAdded, this.invoiceKeyList);
+          temp = this.inputToBeAdded + temp;
+          Swal.fire({
+            title: 'Invoice key should be unique, can\'t be duplicate!',
+            text: "Since " + this.inputToBeAdded + " exists in the in invoice key, do you want save as " + temp + " ?",
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            denyButtonText: `No`,
+          }).then((result) => {
+            /* Read more about isConfirmed, isDenied below */
+            if (result.isConfirmed) {
+              this.inputToBeAdded = temp;
+              this.saveInvoiceColumn();
+            } else if (result.isDenied) {
+              this.inputToBeAdded = undefined;
+            }
+          })
+
+        }
+        else{
+          this.invoiceKeyList.push(this.inputToBeAdded);
+          this.isChanged = true;
+          this.inputToBeAdded = undefined;
+        }
         if (!this.isSportMode) {
           this.isAdding = false;
         }
@@ -1055,8 +1074,9 @@ export class AppComponent implements OnInit {
 
   downloadTheFile(index: number): void {
     // this.excelService.exportAsExcelFile(item, this.exportFileName, false);
-    this.excelService.exportAsExcelFile(
+    this.excelService.exportAsCustomFileFromJson(
       this.outputList[index],
+      this.invoiceKeyListRevised,
       this.exportFileName,
       false,
       this.outputTypeIndex
@@ -1158,9 +1178,6 @@ export class AppComponent implements OnInit {
           icon: 'success',
           title: 'Saved!'
         });
-        console.warn(item);
-        console.warn(this.displayReplacement)
-        console.warn(this.replacements)
       }
       else{
         this.ToastTop.fire({
@@ -1273,7 +1290,6 @@ export class AppComponent implements OnInit {
                 }
               }
               this.replacements?.splice(index, 1);
-              console.warn(this.replacements)
               this.saveReplacementInLocalStorage(true);
             this.Toast.fire({
               icon: 'success',
@@ -1316,7 +1332,6 @@ export class AppComponent implements OnInit {
 
   selectReplacement(event: any, item: IReplacement, i: number): void{
     // event.preventDefault();
-    console.warn(item.checked)
     const originalCheck = item.checked;
     if(item.checked){
       this.displayReplacement = undefined;
@@ -1334,7 +1349,6 @@ export class AppComponent implements OnInit {
         behavior: 'smooth',
       });
     }
-    console.warn(item.checked)
   }
 
   checkIfHasSame(targets: string[]): boolean{
@@ -1348,11 +1362,22 @@ export class AppComponent implements OnInit {
   }
 
   mergeTwoHeaders(headers: string[], excelHeaders: string[]): string[]{
+    // replace this.sameHeader from imported excel headers;
     for (let i = 0; i < headers.length; i++) {
       if(headers[i] === this.sameHeader && i < excelHeaders.length){
         headers[i] = excelHeaders[i];
       }
     }
+    //merge two headers if original header is less than imported excel headers
+    let isExcelHeadersHasMore = headers.length < excelHeaders.length;
+    if(isExcelHeadersHasMore){
+      for (let i = headers.length; i < excelHeaders.length; i++) {
+        if(headers[i] === undefined){
+          headers[i] = excelHeaders[i];
+        }
+      }
+    }
+
     return headers;
   }
 
@@ -1983,7 +2008,6 @@ export class AppComponent implements OnInit {
   }
 
   createRowKey(): void{
-    console.warn('create')
     const n: IRowName = new RowName();
     n.id = this.getUUID();
     n.isEditing = true;
@@ -2215,7 +2239,6 @@ export class AppComponent implements OnInit {
 
   setConvertTypeOption(event: any): void{
     const selectedIndex = event.target.value;
-    console.warn(selectedIndex)
     if(this.behavior === undefined){
       const cb = new Behavior();
       cb.outputFormatsIndex = selectedIndex;
@@ -2403,19 +2426,34 @@ export class AppComponent implements OnInit {
               let newInvoiceObject = {};
               Object.keys(invoiceObj).forEach(key => {
                 let from = c.from
-                if(from === this.nullMsg){
-                  from = "";
-                }
+                // if(from === this.nullMsg){
+                //   from = "";
+                // }
                 if (c.from !== undefined && c.to !== undefined && key === from) {
                   let to = c.to;
-                  if(to === this.nullMsg){
-                    to = ""
-                  }
+                  // if(to === this.nullMsg){
+                  //   to = ""
+                  // }
+                  // // console.warn(key)
+                  // console.warn(newInvoiceObject)
+                  // if(newInvoiceObject.hasOwnProperty(to)){
+                  //   // same key
+                  //   console.warn(to.trim())
+                  //   if(to.trim() === ""){
+                  //     to+="";
+                  //     console.warn(to);
+                  //   }
+                  // }
+                  // else{
+                  //
+                  // }
                   let newPair = { [to]: invoiceObj[key] };
                   newInvoiceObject = { ...newInvoiceObject, ...newPair }
                 } else {
+                  // console.warn(newInvoiceObject)
                   newInvoiceObject = { ...newInvoiceObject, [key]: invoiceObj[key] }
                 }
+                // console.warn(newInvoiceObject)
               });
               invoiceObj = newInvoiceObject;
             }
@@ -2618,6 +2656,73 @@ export class AppComponent implements OnInit {
     }
   }
 
+  switchCalcLineNO(): void{
+    this.isCalcLineNO = !this.isCalcLineNO;
+    let cb: IBehavior | undefined = this.behavior;
+    if (cb !== undefined) {
+      cb.calcLineNO = this.isCalcLineNO;
+    } else {
+      cb = new Behavior();
+      cb.calcLineNO = this.isCalcLineNO;
+    }
+    this.behavior = cb;
+    localStorage.setItem(this.storageCB, JSON.stringify(this.behavior));
+  }
+
+  fetchSeries(event: any, item: IColumnName | IRowName | IReplaceName, index: number): void {
+    if (event.target.value === '') {
+      item.searchResult = undefined;
+    }
+    else{
+      item.searchResult = this.getALlLayoutKeyName().filter((series) => {
+        return series.toLowerCase().startsWith(event.target.value.toLowerCase());
+      })
+    }
+  }
+
+  notDisplaySearchDropdown(item: IColumnName | IRowName | IReplaceName): void{
+    setTimeout((()=> item.searchResult = undefined), 150);
+  }
+
+  fetchSeriesTo(event: any, item: IColumnName | IRowName | IReplaceName, index: number): void {
+    if (event.target.value === '') {
+      item.searchResult = undefined;
+    }
+    else{
+      item.searchResultForTo = this.getALlLayoutKeyName().filter((series) => {
+        return series.toLowerCase().startsWith(event.target.value.toLowerCase());
+      })
+    }
+  }
+
+  notDisplaySearchDropdownTo(item: IColumnName | IRowName | IReplaceName): void{
+    setTimeout((()=> item.searchResultForTo = undefined), 150);
+  }
+
+  fetchSeriesColumnName(event: any, item: IReplaceName | IDecimalPlaces, index: number): void {
+    if (event.target.value === '') {
+      item.searchResultForColumnName = undefined;
+    }
+    else{
+      item.searchResultForColumnName = this.getALlLayoutKeyName().filter((series) => {
+        return series.toLowerCase().startsWith(event.target.value.toLowerCase());
+      })
+    }
+  }
+
+  notDisplaySearchDropdownColumnName(item: IReplaceName | IDecimalPlaces): void{
+    setTimeout((()=> item.searchResultForColumnName = undefined), 100);
+  }
+
+  getALlLayoutKeyName(): string[] {
+    let keyList: string[] = [];
+    this.allFiledNameList.forEach((list: string[]) => keyList =  keyList.concat(JSON.parse(JSON.stringify(list))));
+    while(keyList.indexOf(this.sameHeader) !== -1){
+      keyList.splice(keyList.indexOf(this.sameHeader), 1);
+    }
+    return [... new Set(keyList)];
+  }
+
   protected addShakingAnimation(targetId: string): void {
     document.getElementById(targetId)?.classList.add('animate__animated');
     document.getElementById(targetId)?.classList.add('animate__headShake');
@@ -2663,7 +2768,7 @@ export class AppComponent implements OnInit {
   }
 
   protected getHeadersFromWorkSheet(ws: WorkSheet): string[]{
-    return XLSX.utils.sheet_to_json(ws, {header:1, raw:false})[0] as string[];
+    return XLSX.utils.sheet_to_json(ws, {header:1, raw:true})[0] as string[];
   }
 
   protected getUUID(): string{
@@ -2878,7 +2983,6 @@ export class AppComponent implements OnInit {
     item.isJustCreated = false;
     this.addingOrderList();
     this.saveReplacementInLocalStorage(true);
-    console.warn(item)
     this.Toast.fire({
       icon: 'success',
       title: 'Saved!'
@@ -2925,5 +3029,107 @@ export class AppComponent implements OnInit {
       this.replaceAllCollapsed = this.isMobile;
       this.decimalPlaceCollapsed = this.isMobile;
     }
+  }
+
+  protected replaceSameInHeaders(work_sheet_headers: string[]): string[] {
+    let result: string[] = JSON.parse(JSON.stringify(this.invoiceKeyList));
+    for (let i = 0; i < result.length; i++) {
+      if(result[i] === this.sameHeader){
+        if(i < work_sheet_headers.length){
+          if(this.isKeyExist(work_sheet_headers[i], result)){
+            let postfixIndex = 1;
+            let postfix = '_';
+            let isExist = true;
+            while(isExist){
+              let newKey = work_sheet_headers[i] + postfix + String(postfixIndex++);
+              if(!this.isKeyExist(newKey, result)){
+                result[i] = newKey;
+                isExist = false;
+              }
+            }
+          }
+          else{
+            result[i] = work_sheet_headers[i];
+          }
+        }
+        else{
+          result[i] = '';
+        }
+      }
+    }
+    return result;
+  }
+
+  protected isKeyExist(key: string, arr: string[]): boolean{
+    let isExist = false;
+    if(key !== this.sameHeader){
+      arr.forEach((str: string) => {
+        if(str === key){
+          isExist = true;
+        }
+      });
+    }
+    return isExist;
+  }
+
+  protected countSameInKeyArray(key: string, arr: string[]): number {
+    let count = 0;
+    if(key !== ''){
+      arr.forEach((str: string) => {
+        if(str === key){
+          count++;
+        }
+      });
+    }
+    return count;
+  }
+
+  protected getPostfixForSameKey(key: string, arr: string[]): string{
+    let postfix = '';
+    const count: number = this.countSameInKeyArray(key, arr);
+    if(count > 0){
+      postfix = '_' + String(count);
+    }
+    return postfix;
+  }
+
+  protected reviseIfTheKeyIsSame(arr: string[]): string[]{
+    for (let i = 0; i < arr.length; i++) {
+      let count: number = 0;
+      if(this.isKeyExist(arr[i], arr)){
+        count = this.countSameInKeyArray(arr[i], arr);
+      }
+      if(count > 1){
+        let postfixIndex = 1;
+        let postfix = '_';
+        for (let j = i+1; j < arr.length; j++) {
+          if(arr[j] === arr[i]){
+            let isExist = true;
+            while(isExist){
+              let newKey = arr[j] + postfix + String(postfixIndex++);
+              if(!this.isKeyExist(newKey, arr)){
+                arr[j] = newKey;
+                isExist = false;
+              }
+            }
+          }
+        }
+      }
+    }
+    return arr;
+  }
+
+  protected overrideHeader(headers: string[], referenceHeaders: string[], changedHeaders: string[], worksheet: XLSX.WorkSheet): any{
+    referenceHeaders.forEach((key: string, index: number) => {
+      if(key === this.sameHeader && index < headers.length && index < changedHeaders.length && changedHeaders[index] !== headers[index]){
+        headers[index] = changedHeaders[index];
+      }
+    });
+    // headers = headers.slice(0, referenceHeaders.length);
+    var Heading = [
+      headers,
+    ];
+    const ws = XLSX.utils.sheet_add_aoa(worksheet, Heading, {cellDates: true, sheetStubs: true});
+    return XLSX.utils.sheet_to_json(ws, {defval: "", raw: true});
   }
 }

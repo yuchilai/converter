@@ -1,0 +1,5 @@
+<ul *ngIf="item.searchResultForColumnName !== undefined && item.searchResultForColumnName.length > 0" class="search-box">
+  <li class="search-item" (click)="setSearchResult(show)" *ngFor="let show of item.searchResultForColumnName">
+    <p class="item-word"> {{ show }}</p>
+  </li>
+</ul>
