@@ -856,7 +856,7 @@
                 </div>
               </div>
               <div [@collapse]="replaceKeyCollapsed" [style]="!replaceKeyCollapsed && isMobile ? mobileExpandStyle : null" class="advance-replaceKey">
-                <h1 #advanceBTitle class="advance-title noselect"> <Strong> B.</Strong> Rows Replace in a specific column </h1>
+                <h1 #advanceBTitle class="advance-title noselect"> <Strong> B.</Strong> Cells Replacement in a specific column </h1>
                 <div cdkDropList class="advance-replaceKey-drop-area" (cdkDropListDropped)="dropReplaceKeyOrder($event)">
                   <div
                     *ngFor="let item of displayReplacement.replaceKey; let i = index"
